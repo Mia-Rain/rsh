@@ -1,0 +1,20 @@
+---
+rsh - RevisionSH
+-- git replacement in pure sh!
+---
+Features/Plans
+-- Minimal code base
+-- Written in shm
+---- distributed as sh
+-- No network stack
+---- changes are pushed to a folder
+---- allowing for an interchangeable network stack
+---- nfs/sshfs, etc or even nothing can be used!
+-- Hooks!
+---- hook support for all methods
+---- git's hook support is rather lackluster
+-- Plugin support
+---- git integration
+---- web front-end
+  >> heavy integration
+---
