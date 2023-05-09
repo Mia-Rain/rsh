@@ -2,6 +2,11 @@
 rsh - RevisionSH
 -- git replacement in pure sh!
 ---
+Status
+-- this is very WIP still
+-- rsh does not currently work but progress is being made
+---- stay tuned...
+---
 Features/Plans
 -- Minimal code base
 -- Written in shm
@@ -17,4 +22,14 @@ Features/Plans
 ---- git integration
 ---- web front-end
   >> heavy integration
+---
+Server Setup
+-- rsh is entirely client-side; simply set $push_path to a folder
+---- all pushed changes will be sent there
+---- sshfs/nfs/ftp etc can be used for a server setup
+---
+Configuration
+-- the rsh config uses an INI style config
+---- an example is present in example.conf
+---- however a default is provided
 ---
