@@ -1,11 +1,43 @@
 ---
 rsh - RevisionSH
--- git replacement in pure sh!
+-- git replacement in mostly pure sh!
 ---
 Status
 -- this is very WIP still
 -- rsh does not currently work but progress is being made
 ---- stay tuned...
+---
+Usage
+-- rsh works with most standard git commands
+---- but also provides alternatives and short-hands
+-- ./rsh
+---- g/grab/clone
+  >> grabs a project from $push_path or URL
+    >> default operation if URL is detected
+---- i/init
+  >> initializes a project by creating rsh.conf
+---- p/pull/yank
+  >> pulls recent changes from $pull_remote
+---- u/push/send
+  >> pushes data to $push_path
+---- r/ver/revision/commit
+  >> creates a new revision
+    >> replacement for commit
+    >> all pushed code creates a new version
+    >> ALWAYS TEST CODE BEFORE PUSH
+---- h/help
+  >> displays a simple usage guide
+-- see ./docs for more info
+---
+Dependencies
+-- mkdir 
+---- impossible to avoid as sh can't create 
+-- a shell 
+---- dash, ash, bash or yash should work
+  >> zsh is known to not be posix compatible
+-- curl
+---- only required to clone projects outside of your personal server
+-- see sh-caveats for more info
 ---
 Features/Plans
 -- Minimal code base

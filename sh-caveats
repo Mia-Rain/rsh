@@ -1,0 +1,11 @@
+---
+SH caveats
+---
+mkdir
+-- mkdir is only needed during push(),pull() and grab() to create folders
+-- however if they already exist mkdir is never needed
+---
+curl
+-- curl is only used in grab() if cloning outside of $push_path
+-- otherwise data will be cloned from $push_path
+---
