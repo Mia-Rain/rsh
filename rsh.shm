@@ -4,6 +4,10 @@
 nl='
 '
 space=' '
+bail() {
+  unset ERR
+  ${ERR:?$1} || exit 1
+}
 conf() {
   # conf func
   w r -r p || [ "$p" ]; d
@@ -33,10 +37,17 @@ cl() {
   }
   # project config 
   # defaults
+  [ ! "$push_path" ] && bail '$push_path MUST BE SET'
+  [ ! "$push_remote" ] && push_remote="$push_path"
   [ ! "$hooks_enabled" ] && hooks_enabled="grab,init,revi,push,pull"
   [ ! "$grap_path" ] && grab_path="$push_path"
   [ ! "$init_hidden" ] && init_hidden="true"
   [ ! "$pull_remote" ] && pull_remote="$push_remote"
+  
+  # setup variables based on others
+  [ "$init_hidden" = "true" ] && {
+    init_hidden="."
+  } || unset init_hidden
 }
 db() {
   # generate a database of files 
@@ -64,9 +75,7 @@ init() {
   # init func
   hook init pre
   [ ! "$init_replace" ] && {
-    [ "$init_hidden" = "true" ] && init_pre="."
-    init_config="${init_pre}rsh.conf"
-    :> "$init_config" 
+    :> "./${init_hidden}rsh.conf" 
     # init rsh config
     # technically this shouldn't be needed
     # as >> should still create the file
@@ -88,14 +97,24 @@ push() {
   :
 }
 revi() {
+  hook revi pre
   # revision func
-  :
+  [ ! "$revi_ignore" ] && {
+    w r -r p || [ "$p" ]; ;
+      revi_ignore="${revi_ignore:+${revi_ignore}${space}}$p"
+    ;; < ./ignore.conf
+  }
+  [ ! "$revi_replace" ] && {
+    :
+  } || ${revi_replace}
+  # should ./ignore.conf be in use 
+  hook revi post
 }
 cl
 # setup configs
 c "$1" i
   (clone|g|grab|*"://"*) grab "$@";;
-  (i|init) init;;
+  (i|init) init "$@";;
   # finished?
   (pull|yank|p) pull "$@";;
   (push|send|u) push "$@";;
