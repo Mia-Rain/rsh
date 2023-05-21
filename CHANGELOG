@@ -1,0 +1,51 @@
+---
+v0.0.0.6
+-- add work for plugins
+---- add info about install types
+  >>>> WIP
+---- remove default.conf
+  >>>> has no practical use
+---- fix example.conf
+---- add clearvars()
+  >>>> fixes lack of variable scope
+---- add confedit()
+  >>>> will be used heavily with plugins
+---- add $push_path & $push_remote defaults to cl()
+---- add CHANGELOG
+---- add docs/plugins
+---- add ROADMAP
+---- move to switch branch
+  >>>> keeping 2 branches makes no sense
+---
+v0.0.0.51
+-- begin writing revi() ... v0.0.0.51
+---- add bail()
+---- add more defaults to cl()
+---- make $init_hidden reusable
+---- begin building revi()
+---- fix init() call
+---
+v0.0.0.5
+-- tons of work but still not operational ... v0.0.0.5
+---- add usage to README
+---- revamp with shm changes
+---- add info to example.conf
+---- add db()
+  >>>> to be used by revi() and later grab()
+---- build init()
+---
+v0.0.0.4
+-- revamp functions with smh changes
+-- add default.conf
+-- see shm cl()/default.conf
+-- add info about $push_path
+---
+v0.0.0.3
+-- init2...
+---
+v0.0.0.2
+-- init2
+---
+v0.0.0.1
+-- init
+---

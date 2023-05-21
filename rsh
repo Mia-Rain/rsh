@@ -4,6 +4,49 @@
 nl='
 '
 space=' '
+bail() {
+  unset ERR
+  ${ERR:?$1} || exit 1
+}
+clearvars() {
+  for i in ${unset_list}; do
+    unset ${i}
+  done
+  unset unset_list
+}
+# unset variables in $unset_list
+confedit() {
+  while read -r p || [ "$p" ]; do
+    for i in $@; do
+      unset a_item a_header
+      header="${i%%_*}"; item="${i#*_}"; item="${item%=*}"; value="${i#*=}"
+      # values from $@
+      case "$p" in
+        ("["*"]")
+          unset a_item
+          # at header
+          current_header="${p#'['}"; current_header="${current_header%']'}"; a_header=1;;
+        (*"="*)
+          unset a_header
+          # at item
+          c_item="${p%=*}"; c_value="${p#*=}"; a_item=1;;
+      esac
+      [ "$current_header" = "$header" ] && {
+        [ "$c_item" = "$item" -a "$c_value" != "$value" -a "$a_item" ] && {
+          p="${item}=${value}"
+        }
+      }
+    done
+    printf '%s\n' "$p"
+  done
+}
+# reads from STDIN and outputs an updated config based on the data in $@
+# usage:
+# confedit header_var1=1 header2_var3=3 < CONF > TMP; cat < TMP > CONF
+# will change all values from for loop
+# NOTE:
+# due to how STDIN/STDOUT works, you will first have to write to a temp file
+# then into the config
 conf() {
   # conf func
   while read -r p || [ "$p" ]; do
@@ -19,8 +62,6 @@ conf() {
 # less code, more configuration
 cl() {
   # conf loop # loads variables from various configs
-  [ -e "/etc/rsh/default.conf" ] && conf < /etc/rsh/default.conf
-  # default config provided by rsh
   [ -e "/etc/default/rsh" ] && conf < /etc/default/rsh
   # default config provided by distro
   [ -e "/etc/rsh/system" ] && conf < /etc/rsh/system
@@ -33,10 +74,17 @@ cl() {
   }
   # project config 
   # defaults
+  [ ! "$push_path" ] && bail '$push_path MUST BE SET'
+  [ ! "$push_remote" ] && push_remote="$push_path"
   [ ! "$hooks_enabled" ] && hooks_enabled="grab,init,revi,push,pull"
   [ ! "$grap_path" ] && grab_path="$push_path"
   [ ! "$init_hidden" ] && init_hidden="true"
   [ ! "$pull_remote" ] && pull_remote="$push_remote"
+  
+  # setup variables based on others
+  [ "$init_hidden" = "true" ] && {
+    init_hidden="."
+  } || unset init_hidden
 }
 db() {
   # generate a database of files 
@@ -64,9 +112,7 @@ init() {
   # init func
   hook init pre
   [ ! "$init_replace" ] && {
-    [ "$init_hidden" = "true" ] && init_pre="."
-    init_config="${init_pre}rsh.conf"
-    :> "$init_config" 
+    :> "./${init_hidden}rsh.conf" 
     # init rsh config
     # technically this shouldn't be needed
     # as >> should still create the file
@@ -88,14 +134,24 @@ push() {
   :
 }
 revi() {
+  hook revi pre
   # revision func
-  :
+  [ ! "$revi_ignore" ] && {
+    while read -r p || [ "$p" ]; do
+      revi_ignore="${revi_ignore:+${revi_ignore}${space}}$p"
+    done < ./ignore.conf
+  }
+  [ ! "$revi_replace" ] && {
+    :
+  } || ${revi_replace}
+  # should ./ignore.conf be in use 
+  hook revi post
 }
 cl
 # setup configs
 case "$1" in
   (clone|g|grab|*"://"*) grab "$@";;
-  (i|init) init;;
+  (i|init) init "$@";;
   # finished?
   (pull|yank|p) pull "$@";;
   (push|send|u) push "$@";;

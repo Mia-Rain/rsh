@@ -8,6 +8,45 @@ bail() {
   unset ERR
   ${ERR:?$1} || exit 1
 }
+clearvars() {
+  f $i i ${unset_list}; ;
+    unset ${i}
+  ;;
+  unset unset_list
+}
+# unset variables in $unset_list
+confedit() {
+  w r -r p || [ "$p" ]; ;
+    f $i i $@; ;
+      unset a_item a_header
+      header="${i%%_*}"; item="${i#*_}"; item="${item%=*}"; value="${i#*=}"
+      # values from $@
+      c "$p" i
+        ("["*"]")
+          unset a_item
+          # at header
+          current_header="${p#'['}"; current_header="${current_header%']'}"; a_header=1;;
+        (*"="*)
+          unset a_header
+          # at item
+          c_item="${p%=*}"; c_value="${p#*=}"; a_item=1;;
+      s
+      [ "$current_header" = "$header" ] && {
+        [ "$c_item" = "$item" -a "$c_value" != "$value" -a "$a_item" ] && {
+          p="${item}=${value}"
+        }
+      }
+    ;;
+    p '%s\n' "$p"
+  ;;
+}
+# reads from STDIN and outputs an updated config based on the data in $@
+# usage:
+# confedit header_var1=1 header2_var3=3 < CONF > TMP; cat < TMP > CONF
+# will change all values from for loop
+# NOTE:
+# due to how STDIN/STDOUT works, you will first have to write to a temp file
+# then into the config
 conf() {
   # conf func
   w r -r p || [ "$p" ]; d
@@ -23,8 +62,6 @@ conf() {
 # less code, more configuration
 cl() {
   # conf loop # loads variables from various configs
-  [ -e "/etc/rsh/default.conf" ] && conf < /etc/rsh/default.conf
-  # default config provided by rsh
   [ -e "/etc/default/rsh" ] && conf < /etc/default/rsh
   # default config provided by distro
   [ -e "/etc/rsh/system" ] && conf < /etc/rsh/system

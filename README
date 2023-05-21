@@ -7,6 +7,15 @@ Status
 -- rsh does not currently work but progress is being made
 ---- stay tuned...
 ---
+Install Types
+-- there are several different ways to install rsh
+---- Minimal
+  ---- The base setup from v0.0.1
+---- Self Contained
+  ---- Single Binary
+---- Official Plugins
+  ---- Minimal + All recommend official plugins
+---
 Usage
 -- rsh works with most standard git commands
 ---- but also provides alternatives and short-hands
@@ -63,5 +72,4 @@ Server Setup
 Configuration
 -- the rsh config uses an INI style config
 ---- an example is present in example.conf
----- however a default is provided
 ---
