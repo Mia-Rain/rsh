@@ -1,0 +1,6 @@
+---
+confedit()
+---
+Usage
+-- `confedit "header_var=value" "header2_var2=value2" ... < CONF`
+---

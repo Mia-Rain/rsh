@@ -1,0 +1,18 @@
+---
+v0.0.1
+-- full beta release
+---- enough for minimal use
+---- likely missing:
+  >>>> merge
+    >>>> via plugin
+  >>>> logs
+    >>>> v0.0.2
+  >>>> checkout
+    >>>> v0.0.3
+  >>>> rebase/squash
+    >>>> v0.0.1.5
+  >>>> submods
+    >>>> via plugin 
+  >>>> signing
+    >>>> via plugin
+---

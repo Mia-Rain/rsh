@@ -1,0 +1,14 @@
+---
+Docs
+---
+Legend
+-- [...]
+---- optional
+-- <...>
+---- required
+-- ${...}
+---- variable
+  >>>> ${plugin-name} = name of plugin
+-- /.../
+---- important
+---

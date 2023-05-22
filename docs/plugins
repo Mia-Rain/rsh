@@ -1,0 +1,26 @@
+---
+Plugins
+---
+Outline
+-- Files
+---- <${plugin-name}[.shm]>
+  >>>> a file with the name of your plugin is /required/
+  >>>> this should be the main script of your plugin
+  >>>> containing any functions used
+  >>>> or any variables to be set
+---- [install.sh]
+  >>>> use an install script with confedit()
+  >>>> to install plugins
+---- [${plug-name}.conf]
+  >>>> a config file for your plugin
+  >>>> if used /MUST/ be named ${plugin-name}.conf
+  >>>> a plugin config is advised /against/
+  >>>> all configuration should be done in [./]rsh.conf
+-- Code requirements
+---- rsh plugins don't have to be pure sh
+  >>>> however they require a sh wrapper that rsh can source
+---- scripts should source rsh for confedit()
+  >>>> `. $(which rsh)`
+---- additionally function names should be unique to prevent collision
+  >>>> THERE IS NO SAFE-GUARD FOR THIS
+---
