@@ -2,5 +2,6 @@
 confedit()
 ---
 Usage
--- `confedit "header_var=value" "header2_var2=value2" ... < CONF`
+-- `[$conf_write=1] confedit 'header_var=value header2_var2=value2 ...' ./ CONF`
+---- set $conf_write to write changes
 ---

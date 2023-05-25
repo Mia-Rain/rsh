@@ -1,4 +1,15 @@
 ---
+v0.0.0.62
+-- even more work for plugins
+---- shellcheck junk
+---- add $DEBUG to bail()
+---- greatly refine confedit()
+  >>>> can now insert missing headers and items
+  >>>> changed syntax; added $conf_write
+  >>>>>> see docs/confedit
+---- added ${replace} for most functions
+  >>>> cl, conf, db, etc all have replace variables now
+---
 v0.0.0.61
 -- more work for plugins
 ---- write docs and junk
