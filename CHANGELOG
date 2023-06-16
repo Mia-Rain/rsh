@@ -1,4 +1,14 @@
 ---
+v0.0.0.65
+-- priming work for push, pull & commit
+---- db() has been adjusted for usage with self-contained config
+---- confedit() will likely be scrapped
+---- likely to fallback to raw config
+  >>>> due to limitations
+  >>>> an ini style config is too over complicated
+  >>>> confedit() is far too complex
+  >>>>>> TODO: SCRAP confedit() and rewrite example.conf
+---
 v0.0.0.62
 -- even more work for plugins
 ---- shellcheck junk

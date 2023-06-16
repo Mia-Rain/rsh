@@ -72,6 +72,8 @@ EOF
   [ "$conf_write" ] && {
     printf '%s\n' "$out" > "$2" || bail "Failed to write to $2"
   } || printf '%s\n' "$out"
+  unset_list="in out todo lines"
+  clearvars
 }
 # reads from STDIN and outputs an updated config based on the data in $@
 # usage:
@@ -127,21 +129,22 @@ cl() {
 }
 db() {
   # generate a database of files 
-  [ "$db_replace" ] && {
+  [ ! "$db_replace" ] && {
     for i in ./*; do
     # db should only be run from parent folder
       [ -d "$i" ] && {
-        fl="${fl}${i#./}/"; echo "$fl"
-        cd "$i"
-        # should handle permission errors here.. TODO
+        fl="${fl}${i#./}/"
+        cd "$i" || bail "Something went wrong trying to enter $i ... check perms and try again"
         # shellcheck disable=SC2119 
         db
         cd ../; unset fl
-      } || echo "$fl${i#./}"
+      } || printf '%s' "$fl${i#./}${space}"
+    # cycles could be saved by detecting if there are no files in $i
     done
   } || ${db_replace} "$@"
 }
 # will be called by commit and used by internal grab 
+# also used by push & pull
 hook() {
   # hook func
   :
@@ -178,19 +181,14 @@ push() {
 revi() {
   hook revi pre
   # revision func
-  [ ! "$revi_ignore" ] && {
-    while read -r p || [ "$p" ]; do
-      revi_ignore="${revi_ignore:+${revi_ignore}${space}}$p"
-    done < ./ignore.conf
-  }
   [ ! "$revi_replace" ] && {
-    [ "$revi_version" ] && {
+    [ "$revi_self" ] && {
       :  
     } || {
-      export conf_write=1; confedit 'revi_version="v0.0.0.1"' ./"${init_hidden}"rsh.conf
+      export conf_write=1; confedit 'revi_self="v0.0.0.1"' ./"${init_hidden}"rsh.conf
     }
+
   } || ${revi_replace}
-  # should ./ignore.conf be in use 
   hook revi post
 }
 cl "$@"

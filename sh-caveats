@@ -1,6 +1,19 @@
 ---
 SH caveats
 ---
+compatibility
+-- zsh
+---- tested; NOT WORKING
+  >> IFS splitting in zsh is NOT posix compliant
+-- dash
+---- tested; working
+-- bash
+---- tested; working
+-- ash
+---- untested; likely to work
+-- yash
+---- untested; likely to work
+---
 mkdir
 -- mkdir is only needed during push(),pull() and grab() to create folders
 -- however if they already exist mkdir is never needed
