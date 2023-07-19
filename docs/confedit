@@ -2,6 +2,27 @@
 confedit()
 ---
 Usage
--- `[$conf_write=1] confedit 'header_var=value header2_var2=value2 ...' ./ CONF`
----- set $conf_write to write changes
+-- `[$conf_file=CONF] confedit 'header_var=value' 'header2_var2=value2' ... ./CONF`
+---- set $conf_file to configuration file if supplying more then 9 edits
+---- if supplying less than 8 edits either set $conf_file or supply the file as the last argument
+---
+Reason
+-- confedit() should be called to edit the values of a configuration file
+---- this should mostly be used by plugins and wrapper commands
+---
+Routine - as of v0.0.0.66
+-- check if $conf_file has been set
+---- if not try to set it based on the value of the last argument
+-- loop over each line in $conf_file
+---- call argshift() and supply all current arguments
+  >> see docs/argshift
+---- set output to $conf_out
+-- loop over every argument
+---- determine if the current argument matches the expected syntax for edits
+  >> otherwise is must be a file and the last argument; if it is not call bail()
+  >>>> see docs/bail
+---- then check if the current argument is found anywhere within $conf_out
+---- if not; modify $conf_out to contain the missing argument
+-- check if $conf_file is writable; and write updated data if it is
+---- if not call bail()
 ---

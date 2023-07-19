@@ -1,5 +1,5 @@
 #!/bin/sh
-# shellcheck disable=SC2015
+# shellcheck disable=SC2015,SC1091,SC2034
 # IFS replacements operate differently in different shells
 # testing is done in dash
 nl='
@@ -24,97 +24,63 @@ clearvars() {
   unset unset_list
 }
 # unset variables in $unset_list
+argshift() {
+  while [ "$1" ]; do
+    [ "${p%=*}" = "${1%=*}" ] && p="$1"
+    shift 1
+  done
+  printf '%s\n' "$p"
+}
 confedit() {
-  in=$(
-    while IFS= read -r p || [ "$p" ]; do
-      printf '%s\n' "$p"
-    done < "$2")
-    while IFS= read -r p || [ "$p" ]; do
-      : $((lines+=1))
-    done << EOF
-$in
-EOF
-  out=$(
-  todo="$1"
-  n=1; while IFS= read -r p || [ "$p" ]; do
-    for i in $1; do
-      unset a_item a_header
-      header="${i%%_*}"; item="${i#*_}"; item="${item%=*}"; value="${i#*=}"
-      # values from $@
-      case "$p" in
-        ("["*"]")
-          unset a_item
-          # at header
-          c_header="${p#'['}"; c_header="${c_header%']'}"; a_header=1;;
-        (*"="*)
-          unset a_header
-          # at item
-          c_item="${p%=*}"; c_value="${p#*=}"; a_item=1;;
-      esac
-      [ "$c_header" = "$header" ] && {
-        [ "$c_item" = "$item" -a "$c_value" != "$value" -a "$a_item" ] && {
-          p="${item}=${value}"
-        }
-        todo="${todo%%${header}_${item}=${value}*}${todo##*${header}_${item}=${value}}"
-      }
-    done
-    # if on last line
-    printf '%s\n' "$p"
-    [ "$n" -eq "$lines" -a "$todo" = "$1" ] && {
-      printf '%s\n' "[$header]
-$item=$value"
-    }
-    : $((n+=1))
-  done << EOF
-$in
-EOF
-) || bail 'an error occurred in confedit()...; set $DEBUG for additional info' 'additional ERRORS should be present above'
-  [ "$conf_write" ] && {
-    printf '%s\n' "$out" > "$2" || bail "Failed to write to $2"
-  } || printf '%s\n' "$out"
-  unset_list="in out todo lines"
-  clearvars
+  [ "$conf_file" ] || eval $(printf 'conf_file=$%s\n' "$#")
+  conf_out=$(
+  while read -r p || [ "$p" ]; do
+    argshift "$@"
+  done < "$conf_file")
+  while [ "$1" ]; do
+    case "$1" in 
+      *"_"*"="*)
+        case "$conf_out" in
+          *"$1"*) : ;;
+          *)
+            conf_out="$conf_out
+$1";;
+        esac;;
+      *)
+        [ ! "$2" ] && {
+          :
+          # simply move on should the current item not match the expected syntax if it is the last item
+        } || {
+          bail "AN ARGUMENT PASSED TO confedit() HAS INVALID SYNTAX" "It is likely you passed a file to confedit() incorrectly; see docs/confedit"
+        };;
+    esac
+    shift 1
+  done
+  [ -w "$conf_file" ] && {
+    printf '%s\n' "$conf_out" > "$conf_file"
+  } || {
+    bail "COULD NOT WRITE CHANGES TO $conf_file" "Please check the permissions on $conf_file"
+  }
 }
-# reads from STDIN and outputs an updated config based on the data in $@
-# usage:
-# confedit 'header_var1=1 header2_var3=3' ./CONF > TMP
-# will change all values from for loop
-# NOTE:
-# due to how STDIN/STDOUT works, you will first have to write to a temp file
-# then into the config
-# setting conf_write causes confedit() to auto update $2
-conf() {
-  # conf func
-  [ "$conf_replace" ] && {
-    while read -r p || [ "$p" ]; do
-      case "$p" in
-        ("["*"]") prefix="${p#[}"; prefix="${prefix%]}" ;;
-        (*)       eval $(IFS='='; set -- $p; printf '%s_%s="%s"' "$prefix" "$1" "$2") 
-                  # this falls apart with zsh ...
-      esac
-    done
-  } || ${conf_replace} "$@"
-}
-# a raw config file is less complicated but harder to read ...
-# in the future a plugin could be used to have a raw config
-# less code, more configuration
+
 cl() {
   # conf loop # loads variables from various configs
   [ "$cl_replace" ] && {
-    [ -e "/etc/default/rsh" ] && conf < /etc/default/rsh
+    [ -e "/etc/default/rsh" ] && . /etc/default/rsh
     # default config provided by distro
-    [ -e "/etc/rsh/system" ] && conf < /etc/rsh/system
+    [ -e "/etc/rsh/system" ] && . /etc/rsh/system
     # global system config
-    [ -e "${XDG_CONFIG_HOME:-$HOME/.config}/rsh/conf" ] && conf < "${XDG_CONFIG_HOME:-$HOME/.config}"/rsh/conf
+    [ -e "${XDG_CONFIG_HOME:-$HOME/.config}/rsh/conf" ] && . "${XDG_CONFIG_HOME:-$HOME/.config}"/rsh/conf
     # user based config
     [ -e "./rsh.conf" -o -e "./.rsh.conf" ] && {
-      [ -e "./rsh.conf" ] && conf < ./rsh.conf
-      [ -e "./.rsh.conf" ] && conf < ./.rsh.conf 
+      [ -e "./rsh.conf" ] && . ./rsh.conf
+      [ -e "./.rsh.conf" ] && . ./.rsh.conf 
     }
     # project config 
     # defaults
     # shellcheck disable=SC2016
-    [ ! "$push_path" ] && bail '$push_path MUST BE SET'
+    [ ! "$push_path" ] && bail '$push_path MUST BE SET' 'rsh cannot save data if $push_path is unset; please set $push_path to the location where data should be pushed'
+    # TODO: some functions should not depend on $push_path being set; such as clone/grab 
     [ ! "$push_remote" ] && push_remote="$push_path"
     [ ! "$hooks_enabled" ] && hooks_enabled="grab,init,revi,push,pull"
     [ ! "$grap_path" ] && grab_path="$push_path"
@@ -122,9 +88,9 @@ cl() {
     [ ! "$pull_remote" ] && pull_remote="$push_remote"
   
     # setup variables based on others
-    [ "$init_hidden" = "true" ] && {
-      init_hidden="."
-    } || unset init_hidden
+    [ "$config_hidden" = "true" ] && {
+      config_hidden="."
+    } || unset config_hidden
   } || ${cl_replace} "$@"
 }
 db() {
@@ -182,12 +148,11 @@ revi() {
   hook revi pre
   # revision func
   [ ! "$revi_replace" ] && {
-    [ "$revi_self" ] && {
+    [ "$version_local" ] && {
       :  
     } || {
-      export conf_write=1; confedit 'revi_self="v0.0.0.1"' ./"${init_hidden}"rsh.conf
+      export conf_write=1; confedit 'version_local="v0.0.0.1"' ./"${init_hidden}"rsh.conf
     }
-
   } || ${revi_replace}
   hook revi post
 }

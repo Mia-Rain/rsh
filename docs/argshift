@@ -1,0 +1,24 @@
+---
+argshift()
+---
+Legend
+-- current line
+---- $p
+-- current argument
+---- $1
+---
+Reason
+-- called by confedit()
+---- used to loop over >9 arguments without having to deal with `set --`
+  >> during testing usage of `set --` would cause some elements of arguments to be lost
+  >> using a secondary function prevents the need to reset $@
+Routine - as of v0.0.0.66
+-- loop over every given argument
+---- if the current argument matches the current line passed by confedit()
+---- then change the value of the current line to the current argument
+  >> written as `[ "${p%=*}" = "${1%=*}" ] && p="$1"`
+  >>>> expansion should remove everything after first =
+---- otherwise do nothing
+---- output current line 
+  >> `e "$p"`
+---

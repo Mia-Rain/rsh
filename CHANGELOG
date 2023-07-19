@@ -1,4 +1,13 @@
 ---
+v0.0.0.66
+-- finishing work from v0.0.0.65
+---- confedit() has been replaced; see docs/confedit & docs/argshift
+  >>>> config no longer uses INI style
+  >>>> example.conf has been edited to reflect this
+---- conf() has been removed; raw style source is now used instead
+---- docs for confedit, argshift, & bail have been written/improved
+---- some variables have been renamed; see example.conf
+---
 v0.0.0.65
 -- priming work for push, pull & commit
 ---- db() has been adjusted for usage with self-contained config

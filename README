@@ -69,7 +69,3 @@ Server Setup
 ---- all pushed changes will be sent there
 ---- sshfs/nfs/ftp etc can be used for a server setup
 ---
-Configuration
--- the rsh config uses an INI style config
----- an example is present in example.conf
----
