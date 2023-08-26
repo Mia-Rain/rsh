@@ -1,4 +1,15 @@
 ---
+v0.0.0.67
+-- so much for that hiatus
+---- README has been slightly trimmed
+  >>>> help() is now present
+  >>>> remove install types blob
+---- removed references to mkdir
+---- shellcheck improvements
+---- confirm that db() works as expected
+  >>>> db() recieved slight changes
+  >>>> docs need updating
+---
 v0.0.0.66
 -- finishing work from v0.0.0.65
 ---- confedit() has been replaced; see docs/confedit & docs/argshift

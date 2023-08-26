@@ -4,7 +4,7 @@ SH caveats
 compatibility
 -- zsh
 ---- tested; NOT WORKING
-  >> IFS splitting in zsh is NOT posix compliant
+  >> IFS splitting in zsh is NOT compliant by default
 -- dash
 ---- tested; working
 -- bash
@@ -14,11 +14,7 @@ compatibility
 -- yash
 ---- untested; likely to work
 ---
-mkdir
--- mkdir is only needed during push(),pull() and grab() to create folders
--- however if they already exist mkdir is never needed
----
 curl
--- curl is only used in grab() if cloning outside of $push_path
--- otherwise data will be cloned from $push_path
+-- curl is used to copy & create files/directories
+---- this uses `--create-dirs` and `file:///`
 ---

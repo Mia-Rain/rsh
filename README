@@ -7,51 +7,18 @@ Status
 -- rsh does not currently work but progress is being made
 ---- stay tuned...
 ---
-Install Types
--- there are several different ways to install rsh
----- Minimal
-  ---- The base setup from v0.0.1
----- Self Contained
-  ---- Single Binary
----- Official Plugins
-  ---- Minimal + All recommend official plugins
----
 Usage
--- rsh works with most standard git commands
----- but also provides alternatives and short-hands
--- ./rsh
----- g/grab/clone
-  >> grabs a project from $push_path or URL
-    >> default operation if URL is detected
----- i/init 
-  >> initializes a project by creating rsh.conf
-  >>>> this only exists for feature parity with git
-  >>>> and for plugins that need init
----- p/pull/yank/y
-  >> pulls recent changes from $pull_remote
----- u/push/send/s
-  >> pushes data to $push_path
----- r/ver/revision/commit
-  >> creates a new revision
-    >> replacement for commit
-    >> all pushed code creates a new version
-    >> ALWAYS TEST CODE BEFORE PUSH
----- h/help [command]
-  >> displays a simple usage guide
-  >>>> displays a usage guide for [command]
--- see ./docs for more info
+-- see ./rsh help for usage info
+---- see ./docs for more info
 ---
 Dependencies
--- mkdir 
----- impossible to avoid as sh can't create 
--- a shell 
+-- a POSIX compliant shell 
 ---- dash, ash, bash or yash should work
-  >> zsh is known to not be posix compatible
 -- curl
----- only required to clone projects outside of your personal server
+---- used to copy/create files & directories
 -- see sh-caveats for more info
 ---
-Features/Plans
+Plans
 -- Minimal code base
 -- Written in shm
 ---- distributed as sh

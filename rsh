@@ -1,5 +1,5 @@
 #!/bin/sh
-# shellcheck disable=SC2015,SC1091,SC2034
+# shellcheck disable=SC2015,SC1091,SC2034,SC2166
 # IFS replacements operate differently in different shells
 # testing is done in dash
 nl="
@@ -10,10 +10,11 @@ bail() {
   if [ ! "$DEBUG" ]; then
     "${ERR:?$1}" || exit "${3:-1}"
   else
-    "${ERR:?$1"${nl}"DEBUG:"${nl}"$2}" || exit "${3:-1}"
+    "${ERR:?$1"${nl}"DEBUG:"${nl}"$2 | @ $PWD}" || exit "${3:-1}"
   fi
 }
 clearvars() {
+  # shellcheck disable=SC2154,SC2046
   for i in ${unset_list}; do
     unset ${i}
   done
@@ -104,72 +105,70 @@ cl() {
     ${cl_replace} "$@"
   fi
 }
-db() {
-  # generate a database of files 
-  if [ ! "$db_replace" ]; then
-    [ -e "./${config_hidden}rsh.conf" ] || {
-      bail "CANNOT FIND LOCAL rsh.conf" "db() will only operate correctly from the parent folder of a project"
-      # see below
-    }
-    db_out="$(
-    for i in ./*; do
+db_build(){
+  for i in ./*; do
     # db should only be run from parent folder
       [ -d "$i" ] && {
         fl="${fl}${i#./}/"
         cd "$i" || bail "FAILED TO MOVE TO ${PWD}/$i" "Please check the premissions on ${PWD}/$i"
         # shellcheck disable=SC2119 
-        db
+        db_build
         cd ../ || bail "FAILED TO MOVE TO ${PWD}/../" "Please check the premissions on ${PWD}/../"
         unset fl
       } || {
         case "$db_ignore" in
           *" $fl${i#./} "*) :;;
-          *) p '%s' "$fl${i#./}${space}";;
+          *) 
+          printf '%s' "$fl${i#./}${space}";;
         esac
       }
     # TODO(?): cycles could be saved by detecting if there are no files in $i
     done
-    )"
+}
+# this is used because of recursion
+db() {
+  # generate a database of files 
+  if [ ! "$db_replace" ]; then
+    [ -e "./${config_hidden}rsh.conf" ] || {
+      bail " CANNOT FIND LOCAL rsh.conf" "db() will only operate correctly from the parent folder of a project"
+      # see below
+    }
+    db_out="$(db_build) ${config_hidden}rsh.conf"
     [ "$db_file" ] && {
       printf 'db_items="%s"\n' "$db_out" > "$db_file"
     } || {
       export db_items="$db_out"
       confedit "$(printf 'db_items="%s"\n' "$db_out")" ./"${config_hidden}"rsh.conf
-      # this worked in outside testing; TODO: test this lol
     }
+    unset org_path
   else
     ${db_replace} "$@"
   fi
 }
 # will be called by commit and used by internal grab 
 # also used by push & pull
+# TODO: update docs for v0.0.0.67 of db()
 hook() {
   # hook func
   :
 }
 help() {
   # help func
-  printf 'usage: [DEBUG=1] rsh <command> [<args>]\n\n'
-  printf 'These are the common rsh commands used in various situations:\n\n'
-  printf 'start a working area (see also docs/quickstart)\n'
-  printf '   [g]rab/clone     Clone a repository into a new directory\n'
-  printf '   [i]int           Create a bare rsh repository (unneeded)\n\n'
-  printf 'work on the current change (see also TODO)\n'
-  # TODO - system to add/rm changes -- maybe; likely this wont be present; db() will simply gather everything
-  printf '   TODO\n\n'
-  printf 'examine the history and state (see also TODO)\n'
-  # TODO - implement a history/log system; likely won't be part of base rsh; rsh-changelog plugin will handle
-  printf '   TODO\n\n'
-  printf 'grow, mark and tweak your common history\n'
-  # lmao; no -- rsh is built specifically to not have this
-  printf '   N/A\n\n'
-  printf 'collaborate (see also TODO)\n'
-  # TODO - this wont be present in base rsh; hopefully rsh-community will eventually be a thing
-  # however rsh is for personal use only currently
-  printf '   TODO\n'
-  printf "see 'rsh help <command>' or 'rsh help <concept>'
-to read about a specific subcommand or concept."
-
+  case "$1" in
+    "")
+      printf 'USAGE: [DEBUG=1] rsh <command> [args]\n\n'
+      printf '       [i]init               Initialise a repository.\n'
+      printf '       [g]rab/clone          Clone a repository into a new directory.\n'
+      printf '       [r]evision/ver/commit Commit the current changes to a new revision.\n'
+      printf '       [p]ull/yank           Pull remote changes to the current project.\n'
+      printf '       [p]ush/send           Push currently commited changes to remote location.\n'
+      printf '       [h]elp [command]      Provide usage; optionally for a subcommand.\n'
+      # TODO: a plugin command should be added in the future to interact with plugins
+      printf '\n'
+      #p '       [i]nit          Create a bare rsh repository.\n\n' # unneeded
+      printf "       Writing  'DEBUG=1 rsh' will enable verbose output.\n";;
+      # a single p call could be used but that messes with formatting because of shm
+  esac
 }
 init() {
   # init func
@@ -227,6 +226,6 @@ case "$1" in
   (pull|yank|p|y) pull "$@";;
   (push|send|u|s) push "$@";;
   (commit|revision|ver|r) revi "$@";;
-  (""|'?'|-[hH]|[hH]|[hH]elp) help;;
+  (""|'?'|-[hH]|[hH]|[hH]elp) help "$@";;
   (*) grab "$@";;
 esac

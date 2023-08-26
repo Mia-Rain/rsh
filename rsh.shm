@@ -1,5 +1,5 @@
 #!/usr/bin/env shm
-# shellcheck disable=SC2015,SC1091,SC2034
+# shellcheck disable=SC2015,SC1091,SC2034,SC2166
 # IFS replacements operate differently in different shells
 # testing is done in dash
 nl="
@@ -10,10 +10,11 @@ bail() {
   if [ ! "$DEBUG" ]; then
     "${ERR:?$1}" || exit "${3:-1}"
   else
-    "${ERR:?$1"${nl}"DEBUG:"${nl}"$2}" || exit "${3:-1}"
+    "${ERR:?$1"${nl}"DEBUG:"${nl}"$2 | @ $PWD}" || exit "${3:-1}"
   fi
 }
 clearvars() {
+  # shellcheck disable=SC2154,SC2046
   f $i i ${unset_list}; ;
     unset ${i}
   ;;
@@ -104,45 +105,49 @@ cl() {
     ${cl_replace} "$@"
   fi
 }
-db() {
-  # generate a database of files 
-  if [ ! "$db_replace" ]; then
-    [ -e "./${config_hidden}rsh.conf" ] || {
-      bail "CANNOT FIND LOCAL rsh.conf" "db() will only operate correctly from the parent folder of a project"
-      # see below
-    }
-    db_out="$(
-    f $i i ./*; d
+db_build(){
+  f $i i ./*; d
     # db should only be run from parent folder
       [ -d "$i" ] && {
         fl="${fl}${i#./}/"
         cd "$i" || bail "FAILED TO MOVE TO ${PWD}/$i" "Please check the premissions on ${PWD}/$i"
         # shellcheck disable=SC2119 
-        db
+        db_build
         cd ../ || bail "FAILED TO MOVE TO ${PWD}/../" "Please check the premissions on ${PWD}/../"
         unset fl
       } || {
         c "$db_ignore" i
           *" $fl${i#./} "*) :;;
-          *) p '%s' "$fl${i#./}${space}";;
+          *) 
+          p '%s' "$fl${i#./}${space}";;
         s
       }
     # TODO(?): cycles could be saved by detecting if there are no files in $i
     n
-    )"
+}
+# this is used because of recursion
+db() {
+  # generate a database of files 
+  if [ ! "$db_replace" ]; then
+    [ -e "./${config_hidden}rsh.conf" ] || {
+      bail " CANNOT FIND LOCAL rsh.conf" "db() will only operate correctly from the parent folder of a project"
+      # see below
+    }
+    db_out="$(db_build) ${config_hidden}rsh.conf"
     [ "$db_file" ] && {
       p 'db_items="%s"\n' "$db_out" > "$db_file"
     } || {
       export db_items="$db_out"
       confedit "$(printf 'db_items="%s"\n' "$db_out")" ./"${config_hidden}"rsh.conf
-      # this worked in outside testing; TODO: test this lol
     }
+    unset org_path
   else
     ${db_replace} "$@"
   fi
 }
 # will be called by commit and used by internal grab 
 # also used by push & pull
+# TODO: update docs for v0.0.0.67 of db()
 hook() {
   # hook func
   :
@@ -152,6 +157,7 @@ help() {
   c "$1" i
     "")
       p 'USAGE: [DEBUG=1] rsh <command> [args]\n\n'
+      p '       [i]init               Initialise a repository.\n'
       p '       [g]rab/clone          Clone a repository into a new directory.\n'
       p '       [r]evision/ver/commit Commit the current changes to a new revision.\n'
       p '       [p]ull/yank           Pull remote changes to the current project.\n'
@@ -160,8 +166,7 @@ help() {
       # TODO: a plugin command should be added in the future to interact with plugins
       p '\n'
       #p '       [i]nit          Create a bare rsh repository.\n\n' # unneeded
-      p "       Writing  'DEBUG=1 rsh' will enable verbose output.\n"
-      ;;
+      p "       Writing  'DEBUG=1 rsh' will enable verbose output.\n";;
       # a single p call could be used but that messes with formatting because of shm
   s
 }
@@ -221,6 +226,6 @@ c "$1" i
   (pull|yank|p|y) pull "$@";;
   (push|send|u|s) push "$@";;
   (commit|revision|ver|r) revi "$@";;
-  (""|'?'|-[hH]|[hH]|[hH]elp) help;;
+  (""|'?'|-[hH]|[hH]|[hH]elp) help "$@";;
   (*) grab "$@";;
 s
