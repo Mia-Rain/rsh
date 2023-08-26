@@ -2,22 +2,17 @@
 # shellcheck disable=SC2015,SC1091,SC2034
 # IFS replacements operate differently in different shells
 # testing is done in dash
-nl='
-'
+nl="
+"
 space=' '
 bail() {
   unset ERR
   if [ ! "$DEBUG" ]; then
-    ${ERR:?$1} || exit 1
+    "${ERR:?$1}" || exit "${3:-1}"
   else
-    ${ERR:?$1
-DEBUG:
-$2
-} || exit 1
+    "${ERR:?$1"${nl}"DEBUG:"${nl}"$2}" || exit "${3:-1}"
   fi
-  # if is needed here
 }
-# TODO: it may be a good idea to provide $3 for custom exit codes
 clearvars() {
   f $i i ${unset_list}; ;
     unset ${i}
@@ -33,40 +28,43 @@ argshift() {
   e "$p"
 }
 confedit() {
-  [ "$conf_file" ] || eval $(printf 'conf_file=$%s\n' "$#")
-  conf_out=$(
-  w r -r p || [ "$p" ]; ;
-    argshift "$@"
-  ;; < "$conf_file")
-  w [ "$1" ]; ;
-    c "$1" i 
-      *"_"*"="*)
-        c "$conf_out" i
-          *"$1"*) : ;;
-          *)
-            conf_out="$conf_out
-$1";;
-        esac;;
-      *)
-        [ ! "$2" ] && {
-          :
-          # simply move on should the current item not match the expected syntax if it is the last item
-        } || {
-          bail "AN ARGUMENT PASSED TO confedit() HAS INVALID SYNTAX" "It is likely you passed a file to confedit() incorrectly; see docs/confedit"
+  if [ ! "$confedit_replace" ]; then
+    [ "$conf_file" ] || eval $(printf 'conf_file=$%s\n' "$#")
+    conf_out=$(
+    w r -r p || [ "$p" ]; ;
+      argshift "$@"
+    ;; < "$conf_file")
+    w [ "$1" ]; ;
+      c "$1" i 
+        *"_"*"="*)
+          c "$conf_out" i
+            *"$1"*) : ;;
+            *)
+              conf_out="$conf_out$nl$1";;
+          esac;;
+        *)
+          [ ! "$2" ] && {
+            :
+            # simply move on should the current item not match the expected syntax if it is the last item
+          } || {
+            bail "AN ARGUMENT PASSED TO confedit() HAS INVALID SYNTAX" "It is likely you passed a file to confedit() incorrectly; see docs/confedit"
         };;
-    s
-    shift 1
-  ;;
-  [ -w "$conf_file" ] && {
-    p '%s\n' "$conf_out" > "$conf_file"
-  } || {
-    bail "COULD NOT WRITE CHANGES TO $conf_file" "Please check the permissions on $conf_file"
-  }
+      s
+      shift 1
+    ;;
+    [ -w "$conf_file" ] && {
+      p '%s\n' "$conf_out" > "$conf_file"
+    } || {
+      bail "COULD NOT WRITE CHANGES TO $conf_file" "Please check the permissions on $conf_file"
+    }
+  else
+    ${confedit_replace} "$@"
+  fi
 }
-
 cl() {
   # conf loop # loads variables from various configs
-  [ "$cl_replace" ] && {
+  if [ ! "$cl_replace" ]; then
+    [ "$DEBUG" ] && e "RUNNING cl()" 
     [ -e "/etc/default/rsh" ] && . /etc/default/rsh
     # default config provided by distro
     [ -e "/etc/rsh/system" ] && . /etc/rsh/system
@@ -80,35 +78,68 @@ cl() {
     # project config 
     # defaults
     # shellcheck disable=SC2016
-    [ ! "$push_path" ] && bail '$push_path MUST BE SET' 'rsh cannot save data if $push_path is unset; please set $push_path to the location where data should be pushed'
-    # TODO: some functions should not depend on $push_path being set; such as clone/grab 
+    [ ! "$push_path" ] && {
+      c "$1" i
+        ""|init|i|revision|commit|ver|r|clone|g|grab|h|help) :;;
+        *) bail '$push_path MUST BE SET' 'rsh cannot save data if $push_path is unset; please set $push_path to the location where data should be pushed';;
+      s
+    }
+    # TODO: implement this better lol
     [ ! "$push_remote" ] && push_remote="$push_path"
     [ ! "$hooks_enabled" ] && hooks_enabled="grab,init,revi,push,pull"
     [ ! "$grap_path" ] && grab_path="$push_path"
-    [ ! "$init_hidden" ] && init_hidden="true"
+    [ ! "$config_hidden" ] && config_hidden="true"
+    # default to hidden config
     [ ! "$pull_remote" ] && pull_remote="$push_remote"
-  
+    # TODO: implement db_findHidden 
     # setup variables based on others
     [ "$config_hidden" = "true" ] && {
       config_hidden="."
     } || unset config_hidden
-  } || ${cl_replace} "$@"
+    [ "$db_ignore" ] && {
+      db_ignore="${space}${db_ignore}${space}"
+      # this is done for parsing in db() 
+    }
+  else
+    ${cl_replace} "$@"
+  fi
 }
 db() {
   # generate a database of files 
-  [ ! "$db_replace" ] && {
+  if [ ! "$db_replace" ]; then
+    [ -e "./${config_hidden}rsh.conf" ] || {
+      bail "CANNOT FIND LOCAL rsh.conf" "db() will only operate correctly from the parent folder of a project"
+      # see below
+    }
+    db_out="$(
     f $i i ./*; d
     # db should only be run from parent folder
       [ -d "$i" ] && {
         fl="${fl}${i#./}/"
-        cd "$i" || bail "Something went wrong trying to enter $i ... check perms and try again"
+        cd "$i" || bail "FAILED TO MOVE TO ${PWD}/$i" "Please check the premissions on ${PWD}/$i"
         # shellcheck disable=SC2119 
         db
-        cd ../; unset fl
-      } || p '%s' "$fl${i#./}${space}"
-    # cycles could be saved by detecting if there are no files in $i
+        cd ../ || bail "FAILED TO MOVE TO ${PWD}/../" "Please check the premissions on ${PWD}/../"
+        unset fl
+      } || {
+        c "$db_ignore" i
+          *" $fl${i#./} "*) :;;
+          *) p '%s' "$fl${i#./}${space}";;
+        s
+      }
+    # TODO(?): cycles could be saved by detecting if there are no files in $i
     n
-  } || ${db_replace} "$@"
+    )"
+    [ "$db_file" ] && {
+      p 'db_items="%s"\n' "$db_out" > "$db_file"
+    } || {
+      export db_items="$db_out"
+      confedit "$(printf 'db_items="%s"\n' "$db_out")" ./"${config_hidden}"rsh.conf
+      # this worked in outside testing; TODO: test this lol
+    }
+  else
+    ${db_replace} "$@"
+  fi
 }
 # will be called by commit and used by internal grab 
 # also used by push & pull
@@ -118,19 +149,41 @@ hook() {
 }
 help() {
   # help func
-  :
+  c "$1" i
+    "")
+      p 'USAGE: [DEBUG=1] rsh <command> [args]\n\n'
+      p '       [g]rab/clone          Clone a repository into a new directory.\n'
+      p '       [r]evision/ver/commit Commit the current changes to a new revision.\n'
+      p '       [p]ull/yank           Pull remote changes to the current project.\n'
+      p '       [p]ush/send           Push currently commited changes to remote location.\n'
+      p '       [h]elp [command]      Provide usage; optionally for a subcommand.\n'
+      # TODO: a plugin command should be added in the future to interact with plugins
+      p '\n'
+      #p '       [i]nit          Create a bare rsh repository.\n\n' # unneeded
+      p "       Writing  'DEBUG=1 rsh' will enable verbose output.\n"
+      ;;
+      # a single p call could be used but that messes with formatting because of shm
+  s
 }
 init() {
   # init func
   hook init pre
-  [ ! "$init_replace" ] && {
-    :> "./${init_hidden}rsh.conf" 
-    # init rsh config
-    # technically this shouldn't be needed
-    # as >> should still create the file
-    # and we don't actually write anything here
-    :
-  } || ${init_replace} "$@"
+  if [ ! "$init_replace" ]; then
+    [ ! -e "${config_hidden}rsh.conf" ] && {
+      :> "./${config_hidden}rsh.conf" 
+      [ "$DEBUG" ] && e "created ${config_hidden}rsh.conf"
+      [ -e "./${config_hidden}rsh.conf" ] || \
+        bail "FAILED TO CREATE ./${config_hidden}rsh.conf" "Please check the premissions on $PWD"
+      # init rsh config
+      # technically this shouldn't be needed
+      # as >> should still create the file
+      # and we don't actually write anything here
+      :
+    } || \
+      bail "./${config_hidden}rsh.conf ALREADY EXISTS" "Please delete ./${config_hidden}rsh.conf if you would like to reinit"
+  else
+    ${init_replace} "$@"
+  fi
   hook init post
 } 
 grab() {
@@ -148,13 +201,16 @@ push() {
 revi() {
   hook revi pre
   # revision func
-  [ ! "$revi_replace" ] && {
+  if [ ! "$revi_replace" ]; then
     [ "$version_local" ] && {
-      :  
+      : 
+      # TODO: version incrementing needs to be written here
     } || {
-      export conf_write=1; confedit 'version_local="v0.0.0.1"' ./"${init_hidden}"rsh.conf
+      export conf_write=1; confedit 'version_local="v0.0.0.1"' ./"${config_hidden}"rsh.conf
     }
-  } || ${revi_replace}
+  else 
+    ${revi_replace}
+  fi
   hook revi post
 }
 cl "$@"
@@ -162,9 +218,8 @@ cl "$@"
 c "$1" i
   (clone|g|grab|*"://"*) grab "$@";;
   (i|init) init "$@";;
-  # finished?
-  (pull|yank|p) pull "$@";;
-  (push|send|u) push "$@";;
+  (pull|yank|p|y) pull "$@";;
+  (push|send|u|s) push "$@";;
   (commit|revision|ver|r) revi "$@";;
   (""|'?'|-[hH]|[hH]|[hH]elp) help;;
   (*) grab "$@";;

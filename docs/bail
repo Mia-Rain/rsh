@@ -4,17 +4,20 @@ bail()
 Usage
 -- `bail "CRASH REASON" "DEBUG INFORMATION"`
 ---- $1 is always output
----- if the user sets $DEBUG $2 will be output as well
+---- if the user sets $DEBUG; $2 will be output as well
+---- $3 is provided for custom exit code
 ---
 Reason
 -- bail() is used to provide a crash reason
 ---- via $1
 -- and debug information
 ---- via $2
+-- with custom exit code
+---- via $3
 ---
 Routine - as of v0.0.0.62
 -- unset ERR making sure following code operates as expected
 ---- check if $DEBUG is set
--- if not simply output $1 and exit with code 1
----- if set; output $1 followed by DEBUG: then $2; and exit with code 1
+-- if not simply output $1 and exit with code ${3:-1}
+---- if set; output $1 followed by DEBUG: then $2; and exit with code ${3:-1}
 ---

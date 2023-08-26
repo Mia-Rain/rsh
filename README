@@ -23,19 +23,22 @@ Usage
 ---- g/grab/clone
   >> grabs a project from $push_path or URL
     >> default operation if URL is detected
----- i/init
+---- i/init 
   >> initializes a project by creating rsh.conf
----- p/pull/yank
+  >>>> this only exists for feature parity with git
+  >>>> and for plugins that need init
+---- p/pull/yank/y
   >> pulls recent changes from $pull_remote
----- u/push/send
+---- u/push/send/s
   >> pushes data to $push_path
 ---- r/ver/revision/commit
   >> creates a new revision
     >> replacement for commit
     >> all pushed code creates a new version
     >> ALWAYS TEST CODE BEFORE PUSH
----- h/help
+---- h/help [command]
   >> displays a simple usage guide
+  >>>> displays a usage guide for [command]
 -- see ./docs for more info
 ---
 Dependencies
