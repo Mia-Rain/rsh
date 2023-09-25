@@ -1,4 +1,18 @@
 ---
+v0.0.0.68
+-- bit of work; still putting off the version incrementer
+---- ./.gitignore is gone now
+  >>>> tbh idk why I even had it setup
+---- ./FEATURES is setup now
+  >>>> not yet in use
+---- ./docs/bail has been updated for changes finally
+  >>>> $orgfunc has been added
+---- ./README has been updated for info about options
+---- options work now! --verbose and --dry are mostly implement
+  >>>> there are some issues; notably with --dry
+  >>>> $DRY is being used for this
+---- force shellcheck to shutup
+---
 v0.0.0.67
 -- so much for that hiatus
 ---- README has been slightly trimmed

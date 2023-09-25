@@ -10,6 +10,9 @@ Status
 Usage
 -- see ./rsh help for usage info
 ---- see ./docs for more info
+-- Options
+---- options /MUST/ be put before the command
+---- `./rsh --verbose --dry help`
 ---
 Dependencies
 -- a POSIX compliant shell 

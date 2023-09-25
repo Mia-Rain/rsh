@@ -1,21 +1,24 @@
 #!/usr/bin/env shm
-# shellcheck disable=SC2015,SC1091,SC2034,SC2166
+# shellcheck disable=SC2015,SC1091,SC2034,SC2166,SC2120
 # IFS replacements operate differently in different shells
 # testing is done in dash
 nl="
 "
 space=' '
+ver="v0.0.0.68"
+# current version
 bail() {
   unset ERR
   if [ ! "$DEBUG" ]; then
     "${ERR:?$1}" || exit "${3:-1}"
   else
-    "${ERR:?$1"${nl}"DEBUG:"${nl}"$2 | @ $PWD}" || exit "${3:-1}"
+    "${ERR:?$1"${nl}"DEBUG:"${nl}"$2 | @ $PWD | Failed in $orgfunc}" || exit "${3:-1}"
   fi
 }
 clearvars() {
   # shellcheck disable=SC2154,SC2046
   f $i i ${unset_list}; ;
+    # shellcheck disable=SC2086
     unset ${i}
   ;;
   unset unset_list
@@ -29,7 +32,10 @@ argshift() {
   e "$p"
 }
 confedit() {
+  [ "$orgfunc" ] || orgfunc="confedit"
   if [ ! "$confedit_replace" ]; then
+    [ "$conf_write" ] || conf_write=1
+    # shellcheck disable=SC2046
     [ "$conf_file" ] || eval $(printf 'conf_file=$%s\n' "$#")
     conf_out=$(
     w r -r p || [ "$p" ]; ;
@@ -53,16 +59,22 @@ confedit() {
       s
       shift 1
     ;;
-    [ -w "$conf_file" ] && {
-      p '%s\n' "$conf_out" > "$conf_file"
+    [ "$conf_write" ] && {
+      [ -w "$conf_file" ] && {
+        p '%s\n' "$conf_out" > "$conf_file"
+      } || {
+        bail "COULD NOT WRITE CHANGES TO $conf_file" "Please check the permissions on $conf_file"
+      }
     } || {
-      bail "COULD NOT WRITE CHANGES TO $conf_file" "Please check the permissions on $conf_file"
+      p 'Add %s to %s\n' "$conf_out" "$conf_file"
+      # dry run 
     }
   else
     ${confedit_replace} "$@"
   fi
 }
 cl() {
+  orgfunc=cl
   # conf loop # loads variables from various configs
   if [ ! "$cl_replace" ]; then
     [ "$DEBUG" ] && e "RUNNING cl()" 
@@ -127,9 +139,11 @@ db_build(){
 }
 # this is used because of recursion
 db() {
+  [ "$orgfunc" ] || orgfunc="db"
   # generate a database of files 
   if [ ! "$db_replace" ]; then
     [ -e "./${config_hidden}rsh.conf" ] || {
+      orgfunc=db
       bail " CANNOT FIND LOCAL rsh.conf" "db() will only operate correctly from the parent folder of a project"
       # see below
     }
@@ -140,8 +154,8 @@ db() {
       export db_items="$db_out"
       confedit "$(printf 'db_items="%s"\n' "$db_out")" ./"${config_hidden}"rsh.conf
     }
-    unset org_path
   else
+    # shellcheck disable=SC2120
     ${db_replace} "$@"
   fi
 }
@@ -156,26 +170,28 @@ help() {
   # help func
   c "$1" i
     "")
-      p 'USAGE: [DEBUG=1] rsh <command> [args]\n\n'
+      p 'USAGE: rsh [ops] <command> [args]\n\n'
+      p '    Commands:                                        \n'
       p '       [i]init               Initialise a repository.\n'
       p '       [g]rab/clone          Clone a repository into a new directory.\n'
       p '       [r]evision/ver/commit Commit the current changes to a new revision.\n'
       p '       [p]ull/yank           Pull remote changes to the current project.\n'
       p '       [p]ush/send           Push currently commited changes to remote location.\n'
-      p '       [h]elp [command]      Provide usage; optionally for a subcommand.\n'
+      p '       [h]elp [subcommand]   Provide usage; optionally for a subcommand.\n'
       # TODO: a plugin command should be added in the future to interact with plugins
-      p '\n'
-      #p '       [i]nit          Create a bare rsh repository.\n\n' # unneeded
-      p "       Writing  'DEBUG=1 rsh' will enable verbose output.\n";;
+      p '    Options:                                         \n'
+      p '      -[v]/--verbose         Provides DEBUG info.\n'
+      p '      -[d]/--dry             Simulate changes.\n'
       # a single p call could be used but that messes with formatting because of shm
   s
 }
 init() {
+  orgfunc=init
   # init func
   hook init pre
   if [ ! "$init_replace" ]; then
     [ ! -e "${config_hidden}rsh.conf" ] && {
-      :> "./${config_hidden}rsh.conf" 
+      [ "$DRY" ] || :> "./${config_hidden}rsh.conf" 
       [ "$DEBUG" ] && e "created ${config_hidden}rsh.conf"
       [ -e "./${config_hidden}rsh.conf" ] || \
         bail "FAILED TO CREATE ./${config_hidden}rsh.conf" "Please check the premissions on $PWD"
@@ -203,29 +219,91 @@ push() {
   # push func
   :
 }
+prePush() {
+  # shellcheck disable=SC2119
+  db
+  # prepare the database for upcoming push
+  confedit 'push_ready="1"' ./"${config_hidden}"rsh.conf
+}
 revi() {
   hook revi pre
   # revision func
   if [ ! "$revi_replace" ]; then
-    [ "$version_local" ] && {
-      : 
-      # TODO: version incrementing needs to be written here
+    [ ! "$push_ready" ] && {
+      [ "$version" ] && {
+        # expected syntax is v0.0.0.0
+        # however v1, v0.01.0, v0.0.01.0, etc are all still valid
+        # force the current version code into the expected syntax, then increment
+        version="${version#v}"
+        # remove prefix
+        # TODO: implement this lol
+        # -- use a secondary func with $@ instead of a counter loop
+        # func is more complex per say but counter loop is far slower
+
+        # TODO: provide increment flags, for release, beta, alpha, dev, etc
+        # as well as a single flag to set $version
+      } || {
+        confedit 'version="v0.0.0.1"' ./"${config_hidden}"rsh.conf
+        # this is equal to v0.0.0.001 & v000.000.000.001
+        prePush
+      }
     } || {
-      export conf_write=1; confedit 'version_local="v0.0.0.1"' ./"${config_hidden}"rsh.conf
+      # shellcheck disable=SC2016
+      bail '$push_ready IS SET; UNSET TO CONTINUE' "revi() will not operate unless you unset push_ready"
     }
+    # revi should not operate if push_ready is set
   else 
     ${revi_replace}
   fi
   hook revi post
 }
+ops() {
+  # handle ops
+  w [ "$1" ]; ;
+    c "$1" i
+      (-v)
+      # output version
+      unset DEBUG
+      bail "$ver";;
+      (--verbose) 
+        DEBUG=1;;
+      (--dry)
+        DRY=1
+        unset conf_write
+        unset write;;
+    s
+    shift 1
+  ;;
+}
+ops "$@"
+w :; ;
+  c "$@" i
+    (*"--verbose"*)
+      true;;
+    (*"--dry"*)
+      true;;
+    (*)
+      break;;
+  s
+  shift 1
+;;
+# shift over until options are removed
+[ "$DEBUG" ] && {
+  e "DEBUG IS ${DEBUG+ENABLED}"
+  e "DRY RUN IS ${conf_write:-ENABLED}"
+} 
+# setup op variables
 cl "$@"
 # setup configs
+[ "$DEBUG" ] && e "COMMAND IS $1"
 c "$1" i
   (clone|g|grab|*"://"*) grab "$@";;
   (i|init) init "$@";;
   (pull|yank|p|y) pull "$@";;
   (push|send|u|s) push "$@";;
   (commit|revision|ver|r) revi "$@";;
-  (""|'?'|-[hH]|[hH]|[hH]elp) help "$@";;
+  ("help"|""|'?'|-[hH]|[hH]|[hH]elp) help "$@";;
   (*) grab "$@";;
 s
+# dry run is handled directly within confedit() using $conf_write
+# $write should be used by pull/push

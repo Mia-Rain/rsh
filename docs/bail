@@ -15,9 +15,14 @@ Reason
 -- with custom exit code
 ---- via $3
 ---
-Routine - as of v0.0.0.62
+Routine - as of v0.0.0.68
 -- unset ERR making sure following code operates as expected
 ---- check if $DEBUG is set
 -- if not simply output $1 and exit with code ${3:-1}
----- if set; output $1 followed by DEBUG: then $2; and exit with code ${3:-1}
+---- if set; output $1 followed by 
+  >>>> DEBUG:"${nl}"$2 | @ $PWD | Failed in $orgfunc 
+---- then exit with code ${3:-1}
+-- $orgfunc
+---- $orgfunc is used for additional debug info
+---- if set before bail() is called & DEBUG is set, output will contain info about last running function
 ---
