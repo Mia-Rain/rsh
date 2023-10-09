@@ -10,9 +10,10 @@ Reason
 -- confedit() should be called to edit the values of a configuration file
 ---- this should mostly be used by plugins and wrapper commands
 ---
-Routine - as of v0.0.0.66
--- check if $conf_file has been set
----- if not try to set it based on the value of the last argument
+Routine - as of v0.0.0.7
+-- set $conf_edit based on $1 then shift 1
+---- file is expected and REQUIRED at $1
+---- arguement in $1 WILL be LOST after setting $conf_file
 -- loop over each line in $conf_file
 ---- call argshift() and supply all current arguments
   >> see docs/argshift

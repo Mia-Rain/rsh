@@ -1,4 +1,18 @@
 ---
+v0.0.0.7
+-- after a ton of work commit should now be fully implemented!
+---- revi() is now "fully" implemented
+  >>>> additionally init() is no longer needed
+  >>>> commit() can init projects on demand
+  >>>>>> all levels of the version incrementor work
+  >>>>>> and --dry has been fully implemented
+  >>>>>>>> unfortunately the code for this is very complex
+  >>>>>>>> it was harder than expected to deconstruct and reconstruct the version code
+---- ./.gitignore is back
+  >>>> is now hiding rsh.conf
+---- ./docs/confedit have been updated
+  >>>> confedit() was adjusted to use `$1` as `$conf_file`
+---
 v0.0.0.68
 -- bit of work; still putting off the version incrementer
 ---- ./.gitignore is gone now
