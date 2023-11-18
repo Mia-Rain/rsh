@@ -1,4 +1,29 @@
 ---
-Features
--- Here you can find features that are either missing or WIP
+rsh VS git
 ---
+git       | rsh
+--------------------------
+clone     | clone | [g]rab
+init      | [i]nit    -- support for auto init in commit()
+add       | PLANNED
+rm        | PLANNED
+mv        | NA
+restore   | NA        -- rsh is unaware of the state of files -- planned with rsh-caching plugin
+bisect    | ??        -- how does this even work??
+diff      | PLANNED   -- planned with rsh-patch plugin
+grep      | NA        -- please use grep(1)
+log       | EXPECTED  -- will be implemented /eventually/ -- not actively planned
+show      | UNPLANNED -- not likely to be implemented -- unneeded
+status    | status
+branch    | NA        -- rsh has no branch system -- tags/versions can be used as branches
+commit    | [c]ommit  -- implemented differently -- commit messages are not present in rsh
+merge     | PLANNED   -- planned with rsh-patch plugin
+rebase    | ??        -- unknown state; only really useful for squashing commits
+reset     | NA        -- rsh is unaware of the state of files -- may be implemented with rsh-caching
+switch    | EXPECTED  -- will be implemented /eventually/ -- not actively planned
+tag       | NA        -- versioning is handled by commit()
+fetch     | UNPLANNED -- not likely to be implemented -- unneeded
+pull      | PLANNED   -- arriving by v0.0.1
+push      | p[u]sh    -- auto commit support planned
+--verbose | --verbose
+NA        | --dry     -- simulate changes -- useful for testing -- unfinished

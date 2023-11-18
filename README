@@ -1,44 +1,11 @@
 ---
-rsh - RevisionSH
--- git replacement in mostly pure sh!
+rsh
+-- versioning control for a different era
 ---
-Status
--- this is very WIP still
--- rsh does not currently work but progress is being made
----- stay tuned...
+
 ---
-Usage
--- see ./rsh help for usage info
----- see ./docs for more info
--- Options
----- options /MUST/ be put before the command
----- `./rsh --verbose --dry help`
+depends
+-- sh & curl
 ---
-Dependencies
--- a POSIX compliant shell 
----- dash, ash, bash or yash should work
--- curl
----- used to copy/create files & directories
--- see sh-caveats for more info
----
-Plans
--- Minimal code base
--- Written in shm
----- distributed as sh
--- No network stack
----- changes are pushed to a folder
----- allowing for an interchangeable network stack
----- nfs/sshfs, etc or even nothing can be used!
--- Hooks!
----- hook support for all methods
----- git's hook support is rather lackluster
--- Plugin support
----- git integration
----- web front-end
-  >> heavy integration
----
-Server Setup
--- rsh is entirely client-side; simply set $push_path to a folder
----- all pushed changes will be sent there
----- sshfs/nfs/ftp etc can be used for a server setup
+-- WIP
 ---

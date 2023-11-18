@@ -9,8 +9,6 @@ fi
 nl="
 "
 space=' '
-ver="v0.0.0.68"
-# current version
 bail() {
   unset ERR
   if [ ! "$DEBUG" ]; then
@@ -39,10 +37,10 @@ confedit() {
   [ "$orgfunc" ] || orgfunc="confedit"
   if [ ! "$confedit_replace" ]; then
     # shellcheck disable=SC2046
-    p '%s' "${DEBUG+confedit ARGUMENTS: $@$nl}"
+    p '%s' "${DEBUG+!! confedit ARGUMENTS: $@$nl}"
     [ "$conf_file" ] || {
       conf_file="$1"
-      p '%s' "${DEBUG+CREATING $conf_file$nl}"
+      p '%s' "${DEBUG+!! CREATING $conf_file$nl}"
       [ "$DRY" ] || {
         :>> "$conf_file" || bail "FAILED TO CREATE $conf_file" "Please check your perms"
       }
@@ -67,7 +65,7 @@ confedit() {
         bail "COULD NOT WRITE CHANGES TO $conf_file" "Please check the permissions on $conf_file"
       }
     } || {
-      p 'Add %s to %s\n' "$conf_out" "$conf_file"
+      p '!! Add %s to %s\n' "$conf_out" "$conf_file"
       # dry run 
     }
   else
@@ -78,14 +76,14 @@ cl() {
   orgfunc=cl
   # conf loop # loads variables from various configs
   if [ ! "$cl_replace" ]; then
-    p '%s' "${DEBUG+RUNNING cl()$nl}"
+    p '%s' "${DEBUG+!! RUNNING cl()$nl}"
     files="/etc/default/rsh /etc/rsh.conf ${XDG_CONFIG_HOME:-$HOME/.config}/rsh/conf"
     for i in $files; do
-      p '%s' "${DEBUG+LOADING $i$nl}" 
+      p '%s' "${DEBUG+!! LOADING $i$nl}" 
       [ -e "$i" ] && . "$i"
     done
     # user based config
-    p '%s' "${DEBUG+LOADING LOCAL CONFIG$nl}" 
+    p '%s' "${DEBUG+!! LOADING LOCAL CONFIG$nl}" 
     [ -e "./rsh.conf" -o -e "./.rsh.conf" ] && {
       [ -e "./rsh.conf" ] && . ./rsh.conf
       [ -e "./.rsh.conf" ] && . ./.rsh.conf 
@@ -99,7 +97,7 @@ cl() {
         *) bail '$push_path MUST BE SET' 'rsh cannot save data if $push_path is unset; please set $push_path to the location where data should be pushed';;
       s
     }
-    p '%s' "${DEBUG+SETTING DEFAULT VARS$nl}" 
+    p '%s' "${DEBUG+!! SETTING DEFAULT VARS$nl}" 
     # TODO: implement this better lol
     [ ! "$push_remote" ] && push_remote="$push_path"
     [ ! "$hooks_enabled" ] && hooks_enabled="grab,init,revi,push,pull"
@@ -150,13 +148,15 @@ db() {
       bail "CANNOT FIND LOCAL rsh.conf" "db() will only operate correctly from the parent folder of a project"
       # see below
     }
-    p '%s' "${DEBUG+BUILDING DATABASE$nl}"
+    p '%s' "${DEBUG+!! REPO IS $repo_name$nl}"
+    [ "$repo_name" ] || confedit "./${config_hidden}rsh.conf" "repo_name=${PWD##*/}"
+    p '%s' "${DEBUG+!! BUILDING DATABASE$nl}"
     db_out="$(db_build)"; db_out="${db_out%$space}"
     [ "$db_file" ] && {
       p 'db_items="%s"\n' "$db_out" > "$db_file"
     } || {
       export db_items="$db_out"
-      p '%s' "${DEBUG+WRITING DATABASE$nl}"
+      p '%s' "${DEBUG+!! WRITING DATABASE$nl}"
       confedit "./${config_hidden}rsh.conf" "$(printf 'db_items="%s"\n' "$db_out")" 
     }
   else
@@ -172,22 +172,45 @@ hook() {
   :
 }
 help() {
+  # additionally runs status
+  ## 
   # help func
+  p '%s' "${DEBUG+!! USAGE FOR ${1:-STATUS}$nl}"
   c "$1" i
-    "")
+    "usage"|help)
       p 'USAGE: rsh [ops] <command> [args]\n\n'
       p '    Commands:                                        \n'
+      p '       status                Show the status of current repo.\n'
       p '       [i]init               Initialize a repository.\n'
       p '       [g]rab/clone          Clone a repository into a new directory.\n'
       p '       [r]evision/ver/commit Commit the current changes to a new revision.\n'
       p '       [p]ull/yank           Pull remote changes to the current project.\n'
-      p '       [p]ush/send           Push currently committed changes to remote location.\n'
+      p '       p[u]sh/send           Push currently committed changes to remote location.\n'
       p '       [h]elp [subcommand]   Provide usage; optionally for a subcommand.\n'
       # TODO: a plugin command should be added in the future to interact with plugins
-      p '    Options:                                         \n'
-      p '      -[v]/--verbose         Provides DEBUG info.\n'
-      p '      -[d]/--dry             Simulate changes.\n'
-      # a single p call could be used but that messes with formatting because of shm
+      p '    Options:\n'
+      p '      -v                     Show versions of rsh(!) and current repo\n'
+      p '      --verbose              Provides DEBUG info.\n'
+      p '      -[-d]ry                Simulate changes.\n';;
+    ""|status)
+      p '\-- CURRENTLY AT %s\n' "${version:-UNLOADED}"
+      p '\-- REMOTE IS %s\n' "${push_path:-UNLOADED}"
+      p '\-- CURRENT STATE IS '
+      [ "$push_ready" ] && {
+        p '%s\n' "READY FOR PUSH"
+      } || p '%s\n' "PRE-COMMIT"
+      p '\-- DATABASE IS '
+      [ "$db_items" ] && {
+        p '%s\n' "ACTIVE" 
+      } || p '%s\n' "!!UNSET!!"
+      p '\-- CURRENT PROJECT IS '
+      [ "$repo_name" ] && {
+        p '%s\n' "$repo_name" 
+      } || p '%s\n' "!!UNSET!! ~ WOULD BE ${PWD##*/}";;
+    *)
+      p 'COULD NOT FIND USAGE FOR %s\n' "$1"
+      p 'STATUS:\n'
+      help "status";;
   s
 }
 init() {
@@ -197,7 +220,7 @@ init() {
   if [ ! "$init_replace" ]; then
     [ ! -e "${config_hidden}rsh.conf" -a ! "$DRY" ] && {
       [ "$DRY" ] || :> "./${config_hidden}rsh.conf" 
-      p '%s' "${DEBUG+created ${config_hidden}rsh.conf$nl}"
+      p '%s' "${DEBUG+!! created ${config_hidden}rsh.conf$nl}"
       [ -e "./${config_hidden}rsh.conf" -o "$DRY" ] || \
         bail "FAILED TO CREATE ./${config_hidden}rsh.conf" "Please check the permissions on $PWD"
       # init rsh config
@@ -220,16 +243,6 @@ pull() {
   # pull func
   :
 }
-push() {
-  # push func
-  :
-}
-prePush() {
-  # shellcheck disable=SC2119
-  db
-  # prepare the database for upcoming push
-  confedit "./${config_hidden}rsh.conf" 'push_ready="1"' 
-}
 vfunc() {
   [ "$2" ] && {
     v="$1"
@@ -239,22 +252,21 @@ vfunc() {
     n=0; cl=""; vs="$v"
     w [ "$vs" ]; d
       next="${vs%?}"
-      cl="${vs#$next}$cl"
-      [ "$n" -eq 3 -o "${#cl}" -eq 3 ] && { 
+      cl="${vs#"$next"}$cl"
+      [ "$n" -eq 3 -o "${#cl}" -eq 3 ] && {
         cl=".$cl"; n=0;
         [ "${#cl}" -eq 15 ] && {
           v="$cl"
           break
         }
       }
-      #echo "${word#$next} | $cl | $n"
       vs="$next"; : $((n+=1))
     done
     v="$cl"
     v="${v#.}"; p '%s' "$v"
   } || {
     IFS="."; set -- ${1}
-    f $i i $@; d
+    f $i i "$@"; d
       u [ "${#i}" -ge 3 ]; d
         i="0$i"
       ;;
@@ -264,15 +276,65 @@ vfunc() {
   }
   e ""
 }
+push() {
+  hook push pre
+  IFS=" "
+  set -- ${db_items}
+  [ "$push_ready" -a ! "$DRY" ] && {
+    [ -e "$push_path/repos/$repo_name/$version/" ] && bail "$version IS ALREADY PRESENT AT $push_path/repos/$repo_name/" "Please remove $version if you wish to amend it..."
+    w [ "$1" ]; d
+      curl -Lsk --create-dirs file:///"$PWD"/"$1" -o "$push_path/repos/$repo_name/$version/$1"
+      p '%s' "${DEBUG+!! WROTE $1 TO $push_path/repos/$repo_name/$version/$1$nl}"
+      [ ! -e "$push_path/repos/$repo_name/$version/$1" ] && bail "$push_path/repos/$repo_name/$version/$1 IS MISSING..." "Please check the permissions on $push_path/repos/$repo_name/"
+      shift 1
+    ;;
+  } || {
+    bail "There is nothing to push..." '$push_ready is unset; please commit before push'
+    # TODO: add a -c flag to auto commit
+    # as commit messages dont exist in rsh 
+  }
+  unset vcode i latest
+  f $i i "$push_path/repos/$repo_name"/*; d
+    i=${i##*/}
+    [ "$i" != "latest" ] && {
+      vcode="$i"
+      i=$(vfunc "$i")
+      u [ "${i#0}" = "$i" ]; d
+        i="${i#?}"
+      ;;
+      [ "${latest:-0}" -lt "$i" ] && latest="$i"
+    }
+  ;;
+  p '%s' "${DEBUG+!! LATEST VERSION IS $latest$nl}"
+  [ -e "$push_path/repos/$repo_name/latest" ] && {
+    [ "$(type unlink)" ] && unlink "$push_path/repos/$repo_name/latest"
+  }
+  [ "$(type ln)" -a "$(type unlink)" ] && {
+    p '%s' "${DEBUG+!! LINKING LATEST AS $vcode$nl}"
+    ln -sf "$push_path/repos/$repo_name/$vcode" "$push_path/repos/$repo_name/latest"
+  }
+  # determine latest version and write to config
+  p '%s\n' "-- Pushed. Version $version is now present at $push_path/repos/$repo_name/$version"
+  hook push post
+  # TODO: implement --dry handling
+}
+prePush() {
+  p '%s' "${DEBUG+!! PREPARE PUSH$nl}" 
+  # shellcheck disable=SC2119
+  db
+  # prepare the database for upcoming push
+  confedit "./${config_hidden}rsh.conf" 'push_ready="1"' 
+}
+
 revi() {
   orgfunc=revi
-  p '%s' "${DEBUG+COMMIT w/ \"$@\"$nl}"
+  p '%s' "${DEBUG+!! COMMIT w/ \"$@\"$nl}"
   hook revi pre
   # revision func
   if [ ! "$revi_replace" ]; then
     [ ! "$push_ready" ] && {
       [ "$version" -o "$1" ] && {
-        p '%s' "${DEBUG+INCREMENT VERSION CODE$nl}"
+        p '%s' "${DEBUG+!! INCREMENT VERSION CODE$nl}"
         # expected syntax is v0.0.0.0
         # however v1, v0.01.0, v0.0.01.0, etc are all still valid
         # force the current version code into the expected syntax, then increment
@@ -312,7 +374,7 @@ revi() {
         # treating it like a regular number; after expanding the version code to the full
         # v000.000.000.000
         ###
-        p '%s' "${DEBUG+INCREMENT VERSION FROM $version$nl}"
+        p '%s' "${DEBUG+!! INCREMENT VERSION FROM $version$nl}"
         [ "$incr" ] && {
           version=$(vfunc "$version")
           u [ "${version#0}" = "$version" ]; d
@@ -321,13 +383,13 @@ revi() {
           version=$((version+incr))
           version=$(vfunc "$version" _)
         }
-        p '%s' "${DEBUG+VERSION BECAME $version$nl}"
+        p '%s' "${DEBUG+!! VERSION BECAME $version$nl}"
         confedit "./${config_hidden}rsh.conf" version="$version"
         prePush 
       } || {
-        p '%s' "${DEBUG+FIRST VERSION$nl}"
+        p '%s' "${DEBUG+!! FIRST VERSION$nl}"
         confedit "./${config_hidden}rsh.conf" version="v0.0.0.1"
-        p '%s' "${DEBUG+SETUP PUSH$nl}"
+        p '%s' "${DEBUG+!! SETUP PUSH$nl}"
         # this is equal to v0.0.0.001 & v000.000.000.001
         prePush
       }
@@ -339,6 +401,7 @@ revi() {
   else 
     ${revi_replace}
   fi
+  p '%s\n' "-- Commited. New version is $version. Ready for Push."
   hook revi post
 }
 ops() {
@@ -348,7 +411,7 @@ ops() {
       (-v)
       # output version
       unset DEBUG
-      bail "$ver";;
+      bail "rsh version $ver${nl}local project version $version";;
       (--verbose) 
         DEBUG=1;;
       (--dry)
@@ -357,6 +420,14 @@ ops() {
     shift 1
   ;;
 }
+debug() {
+  p '%s' "${DEBUG+!! DROPPING TO $1 IF PRESENT$nl}"
+  type "$1" >/dev/null && {
+    op="$1"; shift 1 # shift out $1
+    ${op} "$@"
+  } || bail "$1 IS NOT A VALID COMMAND" "Please make sure $1 is actually defined"
+}
+# debug() runs commands directly with arguments; useful for db() & cl()
 ops "$@"
 w :; ;
   c "$@" i
@@ -370,18 +441,25 @@ w :; ;
   shift 1
 ;;
 # shift over until options are removed
- p '%s' "${DEBUG+DEBUG IS ENABLED$nl}"
- p '%s' "${DRY+DRY RUN IS ENABLED$nl}"
+ p '%s' "${DEBUG+!! DEBUG IS ENABLED$nl}"
+ p '%s' "${DRY+!! DRY RUN IS ENABLED$nl}"
 # setup op variables
 cl "$@"
 # setup configs
- IFS=""; p '%s' "${DEBUG+COMMAND IS "$@"$nl}"
+ IFS=""; p '%s' "${DEBUG+!! COMMAND IS $@$nl}"
 c "$1" i
-  (clone|g|grab|*"://"*) shift 1; grab "$@";;
-  (i|init) shift 1; init "$@";;
-  (pull|yank|p|y) shift 1; pull "$@";;
-  (push|send|u|s) shift 1; push "$@";;
-  (commit|revision|ver|r) shift 1; revi "$@";;
-  ("help"|""|'?'|-[hH]|[hH]|[hH]elp) help "$@";;
-  (*) grab "$@";;
+  (clone|g|grab) 
+    p '%s' "${DEBUG+!! DROP TO grab() "$@"$nl}"; shift 1; grab "$@";;
+  (i|init) 
+    p '%s' "${DEBUG+!! DROP TO $1() "$@"$nl}"; shift 1; init "$@";;
+  (pull|yank|p|y) 
+    p '%s' "${DEBUG+!! DROP TO $1() "$@"$nl}"; shift 1; pull "$@";;
+  (push|send|u|s) 
+    p '%s' "${DEBUG+!! DROP TO $1() "$@"$nl}"; shift 1; push "$@";;
+  (commit|revision|ver|r) 
+    p '%s' "${DEBUG+!! DROP TO $1() "$@"$nl}"; shift 1; revi "$@";;
+  (debug)
+    DEBUG=1; p '%s\n' "DROP TO debug()"; shift 1; debug "$@";;
+  (""|help|'?'|*) 
+    p '%s' "${DEBUG+!! DROP TO help() "$@"$nl}"; help "$@";;
 s

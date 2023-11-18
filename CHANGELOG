@@ -1,4 +1,15 @@
 ---
+v0.0.0.74
+-- push() has now been mostly implemented
+  >>>> slight mods and additional testing are needed
+  >>>> v0.0.0.8 will not come until push has been implemented too
+----- ./FEATURES is now in use
+  >>>> has comparison of git vs rsh features; mentions plugin additions
+----- ./README has been rewritten for the centered style
+----- ./example.conf is likely out of date currently
+  >>>> should receive updates before v0.0.1
+----- vfunc() will need docs in future as it should be used for version testing
+---
 v0.0.0.7
 -- after a ton of work commit should now be fully implemented!
 ---- revi() is now "fully" implemented
@@ -14,7 +25,7 @@ v0.0.0.7
   >>>> confedit() was adjusted to use `$1` as `$conf_file`
 ---
 v0.0.0.68
--- bit of work; still putting off the version incrementer
+-- bit of work; still putting off the version incrementor
 ---- ./.gitignore is gone now
   >>>> tbh idk why I even had it setup
 ---- ./FEATURES is setup now
@@ -35,7 +46,7 @@ v0.0.0.67
 ---- removed references to mkdir
 ---- shellcheck improvements
 ---- confirm that db() works as expected
-  >>>> db() recieved slight changes
+  >>>> db() received slight changes
   >>>> docs need updating
 ---
 v0.0.0.66
