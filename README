@@ -1,11 +1,14 @@
 ---
 rsh
--- versioning control for a different era
+-- versioning control for a new era 
 ---
 
 ---
 depends
 -- sh & curl
 ---
--- WIP
+
+---
+state
+-- Currently PRE-Alpha
 ---

@@ -1,8 +1,32 @@
 ---
+v0.0.0.78
+-- grab()/clone() is now mostly implemented
+  >>>> again slight mods and additional testing are needed
+  >>>> still no v0.0.0.8 until pull is implemented
+----- ./ROADMAP has be removed
+----- ./example.conf has been updated
+  >>>> a lot of shit in here is literally unimplemented
+  >>>> TODOs are now present
+----- shm is now deprecated
+  >>>> as such rsh is now just a dash script
+  >>>> this will change post alpha with milang
+  >>>> but that is a long time away
+----- various improvements
+  >>>> shcat() is now present
+  >>>> many while read loops are now for loops using IFS
+  >>>> confedit() has been improved again
+  >>>>>> usage has not changed but it can now actually "unset" variables
+  >>>> push now has proper --dry support
+  >>>>>> push now additionally unsets push_ready as it was meant to
+  >>>> help() was redone a lot
+  >>>>>> using shcat/EOF instead of printf
+  >>>> init() is now gone
+  >>>>>> init() only still exists for compatibility
+---
 v0.0.0.74
 -- push() has now been mostly implemented
   >>>> slight mods and additional testing are needed
-  >>>> v0.0.0.8 will not come until push has been implemented too
+  >>>> v0.0.0.8 will not come until pull has been implemented too
 ----- ./FEATURES is now in use
   >>>> has comparison of git vs rsh features; mentions plugin additions
 ----- ./README has been rewritten for the centered style
