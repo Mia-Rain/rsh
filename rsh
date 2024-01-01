@@ -166,12 +166,14 @@ db_build(){
         # shellcheck disable=SC2119 
         db_build
         cd ../ || bail "FAILED TO MOVE TO ${PWD}/../" "Please check the permissions on ${PWD}/../"
-        unset fl
+        fl="${fl%%/*}/"
       } || {
         case "$db_ignore" in
           *" $fl${i#./} "*) :;;
           *) 
-          printf '%s' "$fl${i#./}${space}";;
+          [ -e "$PROJECT_PATH/$fl${i#./}" ] || unset fl
+          printf '%s' "$fl${i#./}${space}"
+          ;;
         esac
       }
     # TODO(?): cycles could be saved by detecting if there are no files in $i
@@ -360,18 +362,23 @@ grab() {
     elif { clone_conf="$(curl -Ls "${PROTO}://${url}/${2:-latest}/rsh.conf" --fail)"; [ "$clone_conf" ]; }; then
       eval "$clone_conf"
     else
-      curl -Ls "${PROTO}://${url}/${2:-latest}/.rsh.conf"
-      curl -Ls "${PROTO}://${url}/${2:-latest}/rsh.conf"
-      bail "COULD NOT LOAD rsh.conf" "Please see above outputs"
+      curl -L "${PROTO}://${url}/${2:-latest}/.rsh.conf"
+      curl -L "${PROTO}://${url}/${2:-latest}/rsh.conf"
+      bail "COULD NOT LOAD rsh.conf from $PROTO://$url/${2:-latest}/" "Please see above outputs"
+      # this is garenteed to fail, thus printing the actual output of curl is desired for debugging
     fi
     IFS=" "
     for file in $db_items; do
-      curl -Ls --create-dirs "${PROTO}://${url}/${2:-latest}/$file" -o "${repo_name}/${file}"
-      printf '%s' "${DEBUG+!! WROTE $file TO ./$repo_name/$file$nl}"
+      if [ ! "$DRY" ]; then
+        curl -Ls --create-dirs "${PROTO}://${url}/${2:-latest}/$file" -o "${repo_name}/${file}"
+        printf '%s' "${DEBUG+!! WROTE $file TO ./$repo_name/$file$nl}"
+      else
+         printf '%s' "${DEBUG+!! WOULD WRITE $file TO ./$repo_name/$file$nl}"
+      fi
     done
     shcat << EOF
 ----------
-Cloned into ./$repo_name
+${DRY+Would have }cloned into ./$repo_name ${2+@ v${2#v}}
 ----------
 EOF
   } || bail "CANNOT PROCEED WITHOUT CURL" "Please install CURL"
@@ -563,23 +570,24 @@ revi() {
 }
 ops() {
   # handle ops
+  known_ops="--verbose:--version:-v:--dry:--tls:--ssl:--ftp:--insecure:--sftp"
   while [ "$1" ]; do
     case "$1" in
       (-v|--version)
       # output version
       unset DEBUG
       bail "rsh version $ver${nl}local project version ${version:-UNSET}" "" "0";;
-      (--verbose) 
+      ("--verbose") 
         DEBUG=1;;
-      (--dry)
+      ("--dry")
         DRY=1;;
-      (--tls|--ssl)
+      ("--tls"|"--ssl")
         PROTO=https;;
-      (--ftp)
+      ("--ftp")
         PROTO=ftp;;
-      (--insecure)
+      ("--insecure")
         PROTO=http;;
-      (--sftp)
+      ("--sftp")
         PROTO=sftp;;
       # PROTO will be used by clone()
       # ${PROTO}://$url
@@ -597,16 +605,14 @@ debug() {
 }
 # debug() runs commands directly with arguments; useful for db() & cl()
 ops "$@"
-while :; do
-  case "$@" in
-    (*"--verbose"*)
-      true;;
-    (*"--dry"*)
-      true;;
-      # TODO: use a write() func to better handle --dry
-    (*)
-      break;;
-  esac
+while {
+    case "$1" in
+      (*"--"*)
+        true;;
+      (*)
+        false
+    esac
+  }; do
   shift 1
 done
 # shift over until options are removed

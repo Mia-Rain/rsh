@@ -1,4 +1,9 @@
 ---
+v0.0.0.781 & v0.0.0.782
+-- a major bug was discovered in db_build()
+---- this bug caused issues with multi-level directories with multiple files
+---- this prevent pushing and caused incorrect databases
+---
 v0.0.0.78
 -- grab()/clone() is now mostly implemented
   >>>> again slight mods and additional testing are needed
