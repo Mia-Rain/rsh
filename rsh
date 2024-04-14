@@ -1,7 +1,7 @@
 #!/bin/sh
 # shellcheck disable=SC2015,SC1091,SC2034,SC2166,SC2120
 # IFS replacements operate differently in different shells
-# testing is done with dash
+# testing is done with freebsd sh
 if [ "$ZSH_VERSION" ]; then
     setopt sh_word_split
 fi
@@ -14,16 +14,18 @@ shcat() {
     printf '%s\n' "$p"
   done
 }
-ver="v0.0.0.740"
+ver="v0.0.0.8"
 # TODO:
 # $ver must be manually edited, this is annoying, fix somehow
 # prob with milang...
 bail() {
   unset ERR
   if [ ! "$DEBUG" ]; then
-    "${ERR:?$1}" || exit "${3:-1}"
+    printf '%s\n' "${1}"
+    exit "${3:-1}"
   else
-    "${ERR:?$1"${nl}"DEBUG:"${nl}"$2 | @ $PWD | Failed in $orgfunc}" || exit "${3:-1}"
+    printf '%s\n' "${1}${nl}DEBUG:${nl}$2 | @ $PWD | Failed in $orgfunc"
+    exit "${3:-1}"
   fi
 }
 clearvars() {
@@ -53,7 +55,7 @@ confedit() {
       conf_file="$1"
       printf '%s' "${DEBUG+!! CHECKING FOR $conf_file$nl}"
       if [ "$DRY" ]; then
-        [ -e "$conf_file" ] || bail "$conf_file IS MISSING" "Please check your perms"
+        [ -e "$conf_file" ] || bail "$conf_file IS MISSING" "In dry mode.. Cannot create"
       else
         :>> "$conf_file" || bail "FAILED TO CREATE $conf_file" "Please check your perms"
       fi
@@ -62,11 +64,12 @@ confedit() {
     # this causes tons of issues
     # TODO
     fi
+    printf '\r%s' "${DEBUG+!! Found $conf_file$nl}"
     shift 1
     # this removes $conf_file from the params
 
     conf_out=$(shcat < $conf_file)
-    printf '%s' "${DEBUG+!! CONTENTS OF $conf_file are $nl$conf_out$nl}"
+    #printf '%s' "${DEBUG+!! CONTENTS OF $conf_file are $nl$conf_out$nl}"
     IFS="$nl"
     conf_out=$(
       for line in $conf_out; do
@@ -88,8 +91,10 @@ confedit() {
     done
     [ ! "$DRY" ] && {
       [ -w "$conf_file" -a ! "$DRY" ] && {
+        # TODO:
+        # this check for $DRY shouldn't be needed 
         printf '%s\n' "$conf_out" > "$conf_file"
-        printf '%s' "${DEBUG+!! WROTE CHANGES of $conf_out to $conf_file$nl}"
+        printf '%s' "${DEBUG+!! WROTE CHANGES of  in $conf_file$nl}"
       } || {
         bail "COULD NOT WRITE CHANGES TO $conf_file" "Please check the permissions on $conf_file"
       }
@@ -107,6 +112,79 @@ confedit() {
     ${confedit_replace} "$@"
   fi
 }
+##
+confload() {
+  orgfunc=confload
+  [ "$(type curl)" ] && {
+    printf '%s' "${DEBUG+!! LOADING CONFIG WITH $@$nl}"
+    curl -Ls "$1/${2:-$latest}" --fail >/dev/null || {
+      printf '%s' "${DEBUG+!! CHECKING remote_latest$nl}"
+      export DEBUG=1
+      bail "COULD NOT LOCATE LATEST VERSION; Please provide as argument" "latest folder is not present; remote_latest is likely in use; user must provide version"
+    }
+    if { clone_conf="$(curl -Ls "$1/${2:-$latest}/.rsh.conf" --fail)"; [ "$clone_conf" ]; }; then
+      eval "$clone_conf"
+    elif { clone_conf="$(curl -Ls "$1/${2:-$latest}/rsh.conf" --fail)"; [ "$clone_conf" ]; }; then
+      eval "$clone_conf"
+    else
+      curl -L "${PROTO}://${url}/${2:-$latest}/.rsh.conf"
+      curl -L "${PROTO}://${url}/${2:-$latest}/rsh.conf"
+      bail "COULD NOT LOAD rsh.conf from $1/${2:-$latest}/" "Please see above outputs"
+      # this is guaranteed to fail, thus printing the actual output of curl is desired for debugging
+    fi
+  } || bail "CANNOT PROCEED WITHOUT CURL" "Please install CURL"
+}
+# load all of config from $1/$latest/[.]rsh.conf
+# this supports manually setting the version $2
+# otherwise defaults to $latest
+confload_l1() {
+  orgfunc=confload_l1
+  if [ -e "$1" ]; then
+    infile="$(shcat < $1)"
+    if [ "$infile" ]; then
+      IFS="$nl"
+        for line in $infile; do
+          case "$line" in
+            ("$2"*) printf '%s\n' "${line##*=}" && return 0;;
+          esac
+        done
+        unset IFS
+    else
+      bail "COULD NOT LOAD DATA FROM $1" "Error in confload_l1(), please confirm that $1 exists"
+    fi
+    # path
+  else
+    [ "$(type curl)" ] && {
+      infile="$(curl -sL --fail "$1" || printf '')"
+      if [ "$infile" ]; then
+        IFS="$nl"
+        for line in $infile; do
+          case "$line" in
+            ("$2"*) printf '%s\n' "${line##*=}" && return 0;;
+          esac
+        done
+        unset IFS
+      else
+        bail "COULD NOT LOAD DATA FROM $1" "Error in confload_l1(), please confirm that $1 exists"
+      fi
+    } || bail "CANNOT CONTINUE WITHOUT CURL" "Error in confload_l1(), curl is needed to continue, please install curl"
+    # url
+  fi 
+}
+# returns the value on line 1 in $1 after loading it from $1
+# $1 should either be a path or url
+# if path must have file://
+## TESTED
+## TODO: adjust this such that is follows $PROTO
+## unless one is given
+## see grab()
+### TODO: too many branches, find some way to cut down on them
+##
+# TODO:
+# the above should be removed, as confload_l1() is only designed to load the first ling
+# and confload() just loads the whole thing
+# really need to refractor all of this; soon :tm:
+##
 cl() {
   orgfunc=cl
   # conf loop # loads variables from various configs
@@ -135,6 +213,7 @@ cl() {
     printf '%s' "${DEBUG+!! SETTING DEFAULT VARS$nl}" 
     # TODO: implement this better lol
     [ ! "$push_remote" ] && push_remote="$push_path"
+    [ "$push_ready" = 0 ] && unset push_ready
     [ ! "$hooks_enabled" ] && hooks_enabled="grab,init,revi,push,pull"
     [ ! "$grab_path" ] && grab_path="$push_path"
     [ ! "$config_hidden" ] && config_hidden="true"
@@ -150,6 +229,10 @@ cl() {
       # this is done for parsing in db() 
     }
     db_extras="${db_extras} .rsh.conf"
+    [ "$remote_latest" ] && latest=$(confload_l1 ${remote_latest%%,*} latest)
+    [ "$latest" ] || latest=latest
+    # $latest is handled here
+    # this is done with confload_l1
   else
     ${cl_replace} "$@"
   fi
@@ -251,9 +334,9 @@ help() {
 -----------
 |  Options:
 -----------
-|    -[-v]ersion            Show versions of rsh(!) and current repo
-|    --verbose              Provides DEBUG info.
-|    --dry                  Simulate changes.
+|    -[-v]ersion           Show versions of rsh(!) and current repo
+|    --verbose             Provides DEBUG info.
+|    --dry                 Simulate changes.
 EOF
     :;;
     (clone|grab)
@@ -263,20 +346,21 @@ EOF
 ---------
 |  rsh [ops] $1 <URL/PATH> [version:-latest] [output path]
 |   
-|  URL:                     Project PATH.
-|  Version:                 Version to grab.
-|                             Defaults to \`latest\`
-|  Output path:             Path to save to.
+|  URL:                    Project PATH.
+|  Version:                Version to grab.
+|                            Defaults to \`latest\`
+|  Output path:            Path to save to.
+|                            Defaults to \`${repo_name:-\$repo_name}\`
 -----------
 |  Options:
 -----------
-|    --tls/--ssl            Use HTTPS as protocol.
+|    --tls/--ssl           Use HTTPS as protocol.
 |      https://
-|    --insecure             Use HTTP  as protocol.
+|    --insecure            Use HTTP  as protocol.
 |      http://
-|    --sftp                 Use SFTP  as protocol.
+|    --sftp                Use SFTP  as protocol.
 |      sftp://
-|    --ftp                  Use FTP   as protocol.
+|    --ftp                 Use FTP   as protocol.
 |      ftp://
 EOF
 # TODO:
@@ -288,7 +372,18 @@ EOF
 ##
       :;;
     (push|send) :;;
-    (pull|yank) :;;
+    (pull|yank) 
+      shcat << EOF
+---------
+|  USAGE: 
+---------
+|  rsh [ops] $1 [URL/PATH] [VERSION]
+|
+|  URL:         Remote path to pull from.
+|  VERSION:     Version to pull
+-----------
+EOF
+      :;;
     (init) :;;
     (config) :;;
     # TODO:
@@ -303,11 +398,11 @@ EOF
 ----------
 |  STATUS:
 ----------
-${version:-"|  VERSION  -- UNLOADED"}
-${push_path:-"|  REMOTE   -- UNLOADED"}
-${push_ready:-"|  STATE    -- PRE-COMMIT"}
-${db_items:-"|  DATABASE -- UNSET"}
-${repo_name:-"|  REPO     -- UNSET"}
+${version:-|  VERSION  -- UNLOADED} 
+${push_path:-|  REMOTE   -- UNLOADED}
+${push_ready:-|  STATE    -- PRE-COMMIT}
+${db_items:-|  DATABASE -- UNSET}
+${repo_name:-|  REPO     -- UNSET}
 EOF
       :;;
       # this seems really complex
@@ -336,6 +431,9 @@ grab() {
   # important to unset data otherwise local config
   # will be used
   # grab func # clone
+  [ "$1" ] || {
+    help "clone"; bail "Missing argument, see \`rsh help clone\`" '$1 was not present' 1
+  }
   case "$1" in
     (*"://"*)
       case "$1" in
@@ -357,20 +455,12 @@ grab() {
   url="$1"; url="${url##*://}"
   [ "$(type curl)" ] && {
     printf '%s' "${DEBUG+!! GRABBING $PROTO://$url$nl}"
-    if { clone_conf="$(curl -Ls "${PROTO}://${url}/${2:-latest}/.rsh.conf" --fail)"; [ "$clone_conf" ]; }; then
-      eval "$clone_conf"
-    elif { clone_conf="$(curl -Ls "${PROTO}://${url}/${2:-latest}/rsh.conf" --fail)"; [ "$clone_conf" ]; }; then
-      eval "$clone_conf"
-    else
-      curl -L "${PROTO}://${url}/${2:-latest}/.rsh.conf"
-      curl -L "${PROTO}://${url}/${2:-latest}/rsh.conf"
-      bail "COULD NOT LOAD rsh.conf from $PROTO://$url/${2:-latest}/" "Please see above outputs"
-      # this is garenteed to fail, thus printing the actual output of curl is desired for debugging
-    fi
+    confload "${PROTO}://${url}/" "${2}"
+
     IFS=" "
     for file in $db_items; do
       if [ ! "$DRY" ]; then
-        curl -Ls --create-dirs "${PROTO}://${url}/${2:-latest}/$file" -o "${repo_name}/${file}"
+        curl -Ls --create-dirs "${PROTO}://${url}/${2:-$latest}/$file" -o "${repo_name}/${file}"
         printf '%s' "${DEBUG+!! WROTE $file TO ./$repo_name/$file$nl}"
       else
          printf '%s' "${DEBUG+!! WOULD WRITE $file TO ./$repo_name/$file$nl}"
@@ -392,7 +482,76 @@ EOF
 }
 pull() {
   # pull func
-  :
+  unset pull_path
+  [ -d "$push_path"/repos/"$repo_name"/ ] && pull_path="$push_path"/repos/"$repo_name"/
+  [ "$1" ] && remote_url="$1"
+  [ "$remote_url" ] || {
+    printf '%s' "${DEBUG+!! remote_url is missing; repo is likely from before v0.1}$nl"
+  }
+  [ ! "$pull_path" ] && pull_path="$remote_url"
+  [ -d "$pull_path" ] && pull_path="file://$pull_path"
+  [ ! "$pull_path" -a "$1" ] && {
+    pull_path="${PROTO:-https}://${1##*://}"
+  }
+  read -rp "This will destroy any current changes... Are you sure? [y/n] > " uinput
+  printf '%s' "${DEBUG+!! INPUT was '${uinput:-UNSET}'$nl}"
+  case "$uinput" in
+    ("y"*|"Y"*) : ;;
+    (*)
+      bail "User did not accept above warning..." "The above warning only accepts \`y\`"
+      ;;
+  esac
+  [ "$pull_path" ] && {
+    printf '%s' "${DEBUG+!! PULL_PATH is ${pull_path:-UNSET}$nl}"
+    printf '%s' "${DEBUG+!! LATEST is ${latest:-UNSET}$nl}"
+    confload "$pull_path/" "${2:-latest}"
+    printf '%s' "${DEBUG+!! db_items is ${db_items+SET}$nl}"
+    # now basically wipe out any exiting files that are present in the db
+    # leave everything else alone
+    ## this is basically clone but in ./ and check if files exist first
+    ## don't worry about folders, only the files in those folders
+    ## notably no extra work for this is needed as the db system was designed with this is mind
+    ## folders are only added to the db if they contain files
+    case "$pull_path" in
+      (*"://"*)
+        case "$pull_path" in
+          ("https://"*) PROTO="https";;
+          ("http://"*) PROTO="http";;
+          ("sftp://"*) PROTO="sftp";;
+          ("ftp://"*) PROTO="ftp";;
+          (*"://"*) PROTO="${pull_path%%://*}";;
+          (*) : ${PROTO:=https};;
+        esac
+      :;;
+      # DETECT PROTO
+      ("/"*) PROTO="path"
+      :;;
+      (*) : ${PROTO:=https}
+      :;;
+      # USE DEFAULT
+    esac
+    pull_path="${pull_path##*://}"
+    IFS=" "
+    for file in $db_items; do
+      if [ ! "$DRY" ]; then
+        [ -e "$file" -a -w "$file" ] && {
+          printf '%s' "${DEBUG+!! WROTE null TO ./$file$nl}"
+          :> "$file"
+        }
+
+        curl -Ls --create-dirs "${PROTO}://${pull_path}/${2:-$latest}/$file" -o "./${file}"
+        printf '%s' "${DEBUG+!! WROTE $file TO ./$file$nl}"
+      else
+        [ -e "$file" -a -w "$file" ] && printf '%s' "${DEBUG+!! WOULD WRITE null TO ./$file$nl}"
+        printf '%s' "${DEBUG+!! WOULD WRITE $file TO ./$file$nl}"
+      fi
+    done
+  } || {
+    bail '$pull_path/$remote_url is not defined for this repo... Please Provide' "The project within $PWD does not have \$remote_url set"
+  }
+  # curl missing is handled in confload()
+  ##
+  # $1 here is used for manual version setting
 }
 vfunc() {
   [ "$2" ] && {
@@ -448,9 +607,15 @@ push() {
   } || {
     bail "There is nothing to push..." '$push_ready is unset; please commit before push'
     # TODO: add a -c flag to auto commit
-    # as commit messages dont exist in rsh 
+    # as commit messages dont exist in rsh
+    # TODO: add handling for curl missing
   }
-  unset vcode i latest
+  ##
+  # TODO:
+  # in dry mode the above data was not written
+  # thus checking the data for the latest version doesn't work
+  ##
+  unset vcode i local_latest
   for i in "$push_path/repos/$repo_name"/*; do
     i=${i##*/}
     [ "$i" != "latest" ] && {
@@ -459,20 +624,31 @@ push() {
       until [ "${i#0}" = "$i" ]; do
         i="${i#?}"
       done
-      [ "${latest:-0}" -lt "${i#v}" ] && latest="$i"
+      local_latest="${local_latest#v}"
+      [ "${local_latest:-0}" -lt "${i#v}" ] && local_latest="$i"
     }
   done
-  printf '%s' "${DEBUG+!! LATEST VERSION IS $latest$nl}"
-  [ -e "$push_path/repos/$repo_name/latest" ] && {
+  printf '%s' "${DEBUG+!! LATEST VERSION IS $local_latest$nl}"
+  [ -h "$push_path/repos/$repo_name/latest" -a ! "$remote_latest" ] && {
     [ "$(type unlink)" ] && unlink "$push_path/repos/$repo_name/latest"
   }
-  [ "$(type ln)" -a "$(type unlink)" ] && {
-    printf '%s' "${DEBUG+!! LINKING LATEST AS $vcode$nl}"
-    cd "$push_path/repos/$repo_name/" && {
-      ln -sf "./$vcode" "./latest"
-    } ||  bail "CHECK PERMs ON $push_path/repos/$repo_name/" "Cannot enter $push_path/repos/$repo_name/; add +x perms"
-  }
+  if [ ! "$remote_latest" ]; then
+    [ "$(type ln)" -a "$(type unlink)" ] && {
+      printf '%s\n' "-- Using ln"
+      printf '%s' "${DEBUG+!! LINKING LATEST AS $vcode$nl}"
+      cd "$push_path/repos/$repo_name/" && {
+        ln -sf "./$vcode" "./latest" || printf '%s\n' "!! WARNING: linking of latest failed, this is likely due to sshfs issues or missing ln"
+        :
+      } ||  bail "CHECK PERMs ON $push_path/repos/$repo_name/" "Cannot enter $push_path/repos/$repo_name/; add +x perms"
+    }
+  else
+    latest_config_path="${remote_latest##*,}"
+    confedit "$latest_config_path" "latest=$vcode"
+    # this needs proper testing
+  fi
   # determine latest version and write to config
+  
+
   printf '%s\n' "-- Pushed. Version $version is now present at $push_path/repos/$repo_name/$version"
   printf '%s\n' "-- Make sure permissions on $push_path/repos/$repo_name/$version are correct for your usage"
   cd $PROJECT_PATH
@@ -489,7 +665,6 @@ prePush() {
   # prepare the database for upcoming push
   confedit "./${config_hidden}rsh.conf" push_ready=1
 }
-#!/bin/sh
 revi() {
   orgfunc=revi
   printf '%s' "${DEBUG+!! COMMIT w/ \"$@\"$nl}"
@@ -565,7 +740,7 @@ revi() {
   else 
     ${revi_replace}
   fi
-  printf '%s\n' "-- Commited. New version is $version. Ready for Push."
+  printf '%s\n' "-- Committed. New version is $version. Ready for Push."
   hook revi post
 }
 ops() {
@@ -576,7 +751,7 @@ ops() {
       (-v|--version)
       # output version
       unset DEBUG
-      bail "rsh version $ver${nl}local project version ${version:-UNSET}" "" "0";;
+      bail "rsh version $ver${nl}" "" "0";;
       ("--verbose") 
         DEBUG=1;;
       ("--dry")
@@ -604,6 +779,18 @@ debug() {
   } # || bail "$1 IS NOT A VALID COMMAND" "Please make sure $1 is actually defined"
 }
 # debug() runs commands directly with arguments; useful for db() & cl()
+config() {
+  [ "${2:-help}" != "help" ] &&  {
+    confedit "./${config_hidden}rsh.conf" "$1=$2"
+    printf '%s\n' "-- ./${config_hidden}rsh.conf was updated with $1=$2"
+  } || help "config" "$1"
+}
+# config() takes 2 arguments
+# $1 as value to take and $2 as new value or help
+# if $2 is help, display info about $1 if present
+## this would require documentation building
+## an advanced system to package documentation
+## inside the single static script would be useful here
 ops "$@"
 while {
     case "$1" in
@@ -636,16 +823,15 @@ case "$1" in
   (debug)
     DEBUG=1; printf '%s' "${DEBUG+!! DROP TO debug() "$@"$nl}" ; shift 1; debug "$@";;
   (config)
-    :;;
-  # TODO:
-  # provide a direct link to conf_edit
+    printf '%s' "${DEBUG+!! DROP TO config() "$@"$nl}"; shift 1; config "$@";;
   (status)
     printf '%s' "${DEBUG+!! DROP TO help() "$@"$nl}"; help "$@";;
   (penis)
     printf '8====D\n'
     # happy birthday Hannah :3
     ;;
-  (""|help|'?'|*) 
+  (""|help|'?'|*)
+    [ "$1" ] || set -- "help"
     printf '%s' "${DEBUG+!! DROP TO help() "$@"$nl}"; shift 1; help "$@";;
 esac
 # TODO:

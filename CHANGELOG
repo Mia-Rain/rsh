@@ -1,14 +1,42 @@
 ---
+v0.0.0.8
+-- after a long hiatus pull() is finally implemented
+---- `$remote_url` & `$pull_path` are now used for this
+  >> `$pull_path` & path based pulls need testing still
+  >>>> currently there is no support for a file:// proto
+  >> repos going forward will need to define `$remote_url`
+  >>>> to allow users to run `pull` without having a copy in `$push_path`
+---- `$remote_latest` is now implemented
+  >> this exists as a system to prevent the requirement of ln(1)
+  >>>> previously ln(1) was required in order to form linking to latest
+  >>>> without this grab() would fail without additional arguments
+  >>>>>> `$remote_latest` works by providing a path and url
+  >>>>>> where the file in path is automatically updated
+  >>>>>> and the config is pulled from url
+  >>>>>> to load the latest into a `$latest` variable
+---- testing is no longer done with dash
+  >> previously I was using a manually packaged dash
+  >>>> however after my last install collapsed after python issues
+  >>>> I lost access to dash, and testing has been done with freebsd sh since
+---- bail() has been redone
+  >> to use exit codes properly
+---- confload()/confload_l1() are now implemented
+  >> former loading a config at url and latter loading line 1 only
+---- config() is now implemented
+  >> this allows users to directly interact with confedit()
+  >>>> taking $1 as variable to change
+  >>>> and $2 as the new value for it
+---
 v0.0.0.781 & v0.0.0.782
 -- a major bug was discovered in db_build()
 ---- this bug caused issues with multi-level directories with multiple files
----- this prevent pushing and caused incorrect databases
+---- this prevented pushing and caused incorrect databases
 ---
 v0.0.0.78
 -- grab()/clone() is now mostly implemented
   >>>> again slight mods and additional testing are needed
   >>>> still no v0.0.0.8 until pull is implemented
------ ./ROADMAP has be removed
+----- ./ROADMAP has been removed
 ----- ./example.conf has been updated
   >>>> a lot of shit in here is literally unimplemented
   >>>> TODOs are now present
