@@ -1,0 +1,34 @@
+#!/bin/sh
+orgfunc="db"
+# generate a database of files 
+if [ ! "$db_replace" ]; then
+  [ "$DRY" -o -e "./${config_hidden}rsh.conf" ] || {
+    orgfunc=db
+    bail "CANNOT FIND LOCAL rsh.conf" "db() will only operate correctly from the parent folder of a project"
+    # see below
+  }
+  printf '%s' "${DEBUG+!! REPO IS $repo_name$nl}"
+  [ "$repo_name" ] || confedit "./${config_hidden}rsh.conf" repo_name=${PWD##*/}
+  printf '%s' "${DEBUG+!! BUILDING DATABASE$nl}"
+  db_out="$(db_build)"; db_out="${db_out%$space}"
+  [ "$db_file" ] && {
+    printf 'db_items="%s"\n' "$db_out" > "$db_file"
+  } || {
+    export db_items="$db_out"
+    printf '%s' "${DEBUG+!! WRITING DATABASE$nl}"
+    confedit "./${config_hidden}rsh.conf" $(printf 'db_items="%s"\n' "$db_out")
+  }
+else
+  # shellcheck disable=SC2120
+  ${db_replace} "$@"
+fi
+# will be called by commit and used by internal grab 
+# also used by push & pull
+# TODO: update docs for v0.0.0.67 of db()
+##
+# it may be possible to remove the need for a database
+# by using a parent path variable
+# and just copying everything from there
+# might be less complex to implement but would make $db_ignore more complex
+##
+# for clone()/grab() this would require checking if the remote has the expected syntax required for raw grab

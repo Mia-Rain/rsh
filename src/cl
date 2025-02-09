@@ -1,0 +1,54 @@
+#!/bin/sh
+orgfunc=cl
+# conf loop # loads variables from various configs
+if [ ! "$cl_replace" ]; then
+  printf '%s' "${DEBUG+!! RUNNING cl()$nl}"
+  files="/etc/default/rsh /etc/rsh.conf ${XDG_CONFIG_HOME:-$HOME/.config}/rsh/conf"
+  for i in $files; do
+    printf '%s' "${DEBUG+!! LOADING $i$nl}" 
+    [ -e "$i" ] && . "$i"
+  done
+  # user based config
+  printf '%s' "${DEBUG+!! LOADING LOCAL CONFIG$nl}" 
+  [ -e "./rsh.conf" -o -e "./.rsh.conf" ] && {
+    [ -e "./rsh.conf" ] && . ./rsh.conf
+    [ -e "./.rsh.conf" ] && . ./.rsh.conf 
+  }
+  # project config 
+  # defaults
+  # shellcheck disable=SC2016
+  [ ! "$push_path" ] && {
+    case "$1" in
+      ""|init|i|revision|commit|ver|r|clone|g|grab|h|help) :;;
+      *) bail '$push_path MUST BE SET' 'rsh cannot save data if $push_path is unset; please set $push_path to the location where data should be pushed';;
+    esac
+  }
+  printf '%s' "${DEBUG+!! SETTING DEFAULT VARS$nl}" 
+  # TODO: implement this better lol
+  [ ! "$push_remote" ] && push_remote="$push_path"
+  [ "$push_ready" = 0 ] && unset push_ready
+  [ ! "$hooks_enabled" ] && hooks_enabled="grab,init,revi,push,pull"
+  [ ! "$grab_path" ] && grab_path="$push_path"
+  [ ! "$config_hidden" ] && config_hidden="true"
+  # default to hidden config
+  [ ! "$pull_remote" ] && pull_remote="$push_remote"
+  # TODO: implement db_findHidden 
+  # setup variables based on others
+  [ "$config_hidden" = "true" ] && {
+    config_hidden="."
+  } || unset config_hidden
+  [ "$db_ignore" ] && {
+    db_ignore="${space}${db_ignore}${space}"
+    # this is done for parsing in db() 
+  }
+  db_extras="${db_extras} .rsh.conf"
+  [ "$remote_latest" ] && latest=$(confload_l1 ${remote_latest%%,*} latest)
+  [ "$latest" ] || latest=latest
+  # $latest is handled here
+  # this is done with confload_l1
+else
+  ${cl_replace} "$@"
+fi
+PROJECT_PATH="$PWD"
+# set current path
+# cannot be disabled as is required for internal functions

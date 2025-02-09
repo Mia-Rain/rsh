@@ -1,0 +1,65 @@
+#!/bin/sh
+# shellcheck disable=SC2015,SC1091,SC2034,SC2166,SC2120
+# IFS replacements operate differently in different shells
+# testing is done with freebsd sh
+if [ "$ZSH_VERSION" ]; then
+    setopt sh_word_split
+fi
+# fix zsh
+nl="
+"
+space=' '
+ver="v0.0.0.8"
+# TODO:
+# this should be automatically updated
+##
+
+## TODO: adjust this such that is follows $PROTO
+## unless one is given
+## see grab()
+hook() {
+  # hook func
+  :
+}
+ops "$@"
+while {
+    case "$1" in
+      (*"--"*)
+        true;;
+      (*)
+        false
+    esac
+  }; do
+  shift 1
+done
+# shift over until options are removed
+ printf '%s' "${DEBUG+!! DEBUG IS ENABLED$nl}"
+ printf '%s' "${DRY+!! DRY RUN IS ENABLED$nl}"
+# setup op variables
+cl "$@"
+# setup configs
+ IFS=""; printf '%s' "${DEBUG+!! COMMAND IS $@$nl}"
+case "$1" in
+  (clone|g|grab) 
+    printf '%s' "${DEBUG+!! DROP TO grab() "$@"$nl}"; shift 1; grab "$@";;
+  (i|init) 
+    printf '%s' "${DEBUG+!! DROP TO $1() "$@"$nl}"; shift 1; init "$@";;
+    # remove or something, maybe keep idk...
+  (pull|yank|p|y) 
+    printf '%s' "${DEBUG+!! DROP TO pull() "$@"$nl}"; shift 1; pull "$@";;
+  (push|send|u|s) 
+    printf '%s' "${DEBUG+!! DROP TO push() "$@"$nl}"; shift 1; push "$@";;
+  (commit|revision|ver|r)
+    printf '%s' "${DEBUG+!! DROP TO revi() "$@"$nl}"; shift 1; revi "$@";;
+  (debug)
+    DEBUG=1; printf '%s' "${DEBUG+!! DROP TO debug() "$@"$nl}" ; shift 1; debug "$@";;
+  (config)
+    printf '%s' "${DEBUG+!! DROP TO config() "$@"$nl}"; shift 1; config "$@";;
+  (status)
+    printf '%s' "${DEBUG+!! DROP TO help() "$@"$nl}"; help "$@";;
+  (""|help|'?'|*)
+    [ "$1" ] || set -- "help"
+    printf '%s' "${DEBUG+!! DROP TO help() "$@"$nl}"; shift 1; help "$@";;
+esac
+# TODO:
+# there should be support for plugin based subcommands

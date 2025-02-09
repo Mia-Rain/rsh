@@ -1,0 +1,67 @@
+#!/bin/sh
+unset conf_out
+printf '%s' "${DEBUG+!! INSIDE confedit()$nl}"
+[ "$orgfunc" ] || orgfunc="confedit"
+if [ ! "$confedit_replace" ]; then
+  # shellcheck disable=SC2046
+  printf '%s' "${DEBUG+!! confedit ARGUMENTS: $@$nl}"
+  if [ ! "$conf_file" ]; then
+    conf_file="$1"
+    printf '%s' "${DEBUG+!! CHECKING FOR $conf_file$nl}"
+    if [ "$DRY" ]; then
+      [ -e "$conf_file" ] || bail "$conf_file IS MISSING" "In dry mode.. Cannot create"
+    else
+      :>> "$conf_file" || bail "FAILED TO CREATE $conf_file" "Please check your perms"
+    fi
+  #else
+  #  set -- $conf_file "$@"
+  # this causes tons of issues
+  # TODO
+  fi
+  printf '\r%s' "${DEBUG+!! Found $conf_file$nl}"
+  shift 1
+  # this removes $conf_file from the params
+
+  conf_out=$(shcat < $conf_file)
+  #printf '%s' "${DEBUG+!! CONTENTS OF $conf_file are $nl$conf_out$nl}"
+  IFS="$nl"
+  conf_out=$(
+    for line in $conf_out; do
+      unset IFS
+      for arg in "$@"; do
+        case "$line" in
+          ("$arg") printf '%s\n' "$line" ;; # if parameter given is already present do nothing
+          ("${arg%%=*}"*) printf '%s\n' "$arg";; # if name of variable matches, output new var
+          (*) printf '%s\n' "$line";; # for all else just output the current line and move on
+        esac
+      done
+    done
+  )
+  for arg in "$@"; do
+    case "$conf_out" in
+      (*"$arg"*) : ;; # if present do nothing
+      (*) conf_out="$conf_out$nl$arg";; # if not present, add it
+    esac
+  done
+  [ ! "$DRY" ] && {
+    [ -w "$conf_file" -a ! "$DRY" ] && {
+      # TODO:
+      # this check for $DRY shouldn't be needed 
+      printf '%s\n' "$conf_out" > "$conf_file"
+      printf '%s' "${DEBUG+!! WROTE CHANGES of  in $conf_file$nl}"
+    } || {
+      bail "COULD NOT WRITE CHANGES TO $conf_file" "Please check the permissions on $conf_file"
+    }
+  } || {
+    printf '%s\n' "-- Would add $conf_out to $conf_file"
+    # dry run
+    IFS="$nl"
+    for i in $conf_out; do
+      printf '%s' "${DEBUG+!! CHANGING $i to}"
+      eval $(printf 'export %s' "$i")
+      printf '%s' "${DEBUG+ $i IN LIVE ENV$nl}"
+    done
+  }
+else
+  ${confedit_replace} "$@"
+fi

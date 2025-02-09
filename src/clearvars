@@ -1,0 +1,8 @@
+#!/bin/sh
+# shellcheck disable=SC2154,SC2046
+for i in ${unset_list}; do
+  # shellcheck disable=SC2086
+  unset ${i}
+done
+unset unset_list
+# unset variables in $unset_list

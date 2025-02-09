@@ -1,0 +1,32 @@
+#!/bin/sh
+[ "$2" ] && {
+  v="$1"
+  until [ "${#v}" -ge 12 ]; do
+    v="0${v}"
+  done
+  n=0; cl=""; vs="$v"
+  while [ "$vs" ]; do
+    next="${vs%?}"
+    cl="${vs#"$next"}$cl"
+    [ "$n" -eq 3 -o "${#cl}" -eq 3 ] && {
+      cl=".$cl"; n=0;
+      [ "${#cl}" -eq 15 ] && {
+        v="$cl"
+        break
+      }
+    }
+    vs="$next"; : $((n+=1))
+  done
+  v="$cl"
+  v="${v#.}"; printf '%s' "$v"
+} || {
+  IFS="."; set -- ${1}
+  for i in "$@"; do
+    until [ "${#i}" -ge 3 ]; do
+      i="0$i"
+    done
+    printf '%s' "$i"
+    shift 1
+  done
+}
+printf '%s\n' ""

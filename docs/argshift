@@ -1,5 +1,5 @@
 ---
-argshift()
+argshift() -- 
 ---
 Legend
 -- current line
@@ -12,7 +12,7 @@ Reason
 ---- used to loop over >9 arguments without having to deal with `set --`
   >> during testing usage of `set --` would cause some elements of arguments to be lost
   >> using a secondary function prevents the need to reset $@
-Routine - as of v0.0.0.66
+Routine - as of v0.0.0.8
 -- loop over every given argument
 ---- if the current argument matches the current line passed by confedit()
 ---- then change the value of the current line to the current argument

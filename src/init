@@ -1,0 +1,9 @@
+#!/bin/sh
+hook init pre
+# init literally has no purpose here
+# push_path should be set in /etc/rsh.conf
+# and all else should be generated/edited at runtime
+##
+# it literally only exists to work with git
+# however rsh is designed differently from others
+hook init post

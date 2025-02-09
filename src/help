@@ -1,0 +1,149 @@
+#!/bin/sh
+# additionally runs status
+## 
+# help func
+printf '%s' "${DEBUG+!! USAGE FOR ${1:-STATUS}$nl}"
+case "$1" in
+  usage|help)
+    shcat << EOF
+---------
+|  USAGE: 
+---------
+|  rsh [ops] <command> [args]
+------------
+|  Commands:
+------------
+|    status                Show the status of current repo.
+|    [i]init               Initialize a repository.
+|    [g]rab/clone          Clone a repository into a new directory.
+|    [r]evision/ver/commit Commit the current changes to a new revision.
+|    [p]ull/yank           Pull remote changes to the current project.
+|    p[u]sh/send           Push currently committed changes to remote location.
+|    [h]elp [subcommand]   Provide usage; optionally for a subcommand.
+|    config                Directly edit config parameters.
+-----------
+|  Options:
+-----------
+|    -[-v]ersion           Show versions of rsh(!) and current repo
+|    --verbose             Provides DEBUG info.
+|    --dry                 Simulate changes.
+EOF
+    :;;
+  clone|grab)
+    shcat << EOF
+---------
+|  USAGE: 
+---------
+|  rsh [ops] $1 <URL/PATH> [version:-latest] [output path]
+|   
+|  URL:                    Project PATH.
+|  Version:                Version to grab.
+|                            Defaults to \`latest\`
+|  Output path:            Path to save to.
+|                            Defaults to \`${repo_name:-\$repo_name}\`
+-----------
+|  Options:
+-----------
+|    --tls/--ssl           Use HTTPS as protocol.
+|      https://
+|    --insecure            Use HTTP  as protocol.
+|      http://
+|    --sftp                Use SFTP  as protocol.
+|      sftp://
+|    --ftp                 Use FTP   as protocol.
+|      ftp://
+-----------
+EOF
+# TODO:
+# we should really state somewhere that support for this requires that curl
+# be compiled with them in the first place
+##
+# ie if rsh was reimplemented to use hget
+# this would probably extremely different
+##
+    :;;
+  commit|revision)
+    shcat << EOF
+---------
+|  USAGE: 
+---------
+|  rsh [ops] $1 [VERSION_TYPE] [CUSTOM_VERSION]
+|
+|  VERSION_TYPE:           Increment type to use
+|                            Options are: 0.0.0.0 
+|                             - Release   1.0.0.0
+|                             - Beta      0.1.0.0
+|                             - Alpha     0.0.1.0
+|                             - Dev       0.0.0.1
+|                             - Custom    Uses CUSTOM_VERSION
+|  CUSTOM_VERSION:         Used when VERSION_TYPE is \`custom\`
+-----------
+EOF
+    :;;
+  push|send) 
+    shcat << EOF
+---------
+|  USAGE: 
+---------
+|  rsh [ops] $1
+|
+|  Push $repo_name to $push_path; takes no ARGs
+-----------
+EOF
+:;;
+  pull|yank) 
+    shcat << EOF
+---------
+|  USAGE: 
+---------
+|  rsh [ops] $1 [URL/PATH] [VERSION]
+|
+|  URL:         Remote path to pull from.
+|  VERSION:     Version to pull.
+-----------
+EOF
+    :;;
+  init) :;;
+  # TODO:
+  # remove everything about init since its useless
+  config) 
+    shcat << EOF
+---------
+|  USAGE:
+---------
+|  rsh [ops] $1 <VARIABLE> <NEW_VALUE>
+|
+|  VARIABLE:    Variable within ./${config_hidden}rsh.conf to be changed.
+|  NEW_VALUE:   Value to change above variable to.
+-----------
+EOF
+:;;
+    # TODO:
+    # implement these
+    status)
+      [ "$version" ] && version="|  VERSION  -- $version"
+      [ "$push_path" ] && push_path="|  REMOTE   -- $push_path"
+      [ "$push_ready" ] && push_ready="|  STATE    -- READY TO PUSH"
+      [ "$db_items" ] && db_items="|  DATABASE -- ACTIVE"
+      [ "$repo_name" ] && repo_name="|  REPO     -- $repo_name"
+      shcat << EOF
+----------
+|  STATUS:
+----------
+${version:-|  VERSION  -- UNLOADED} 
+${push_path:-|  REMOTE   -- UNLOADED}
+${push_ready:-|  STATE    -- PRE-COMMIT}
+${db_items:-|  DATABASE -- UNSET}
+${repo_name:-|  REPO     -- UNSET}
+EOF
+    :;;
+    # this seems really complex
+    # and it is lol
+    # this will get better with a compiler layer
+    # but for now; we suffer
+*|"")
+  printf '%s' "${DEBUG+!! UNKNOWN COMMAND AS $1$nl}"
+  help "usage"
+  help "status"
+  :;;
+esac

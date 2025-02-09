@@ -15,7 +15,7 @@ Reason
 -- with custom exit code
 ---- via $3
 ---
-Routine - as of v0.0.0.68
+Routine - as of v0.0.0.8
 -- unset ERR making sure following code operates as expected
 ---- check if $DEBUG is set
 -- if not simply output $1 and exit with code ${3:-1}

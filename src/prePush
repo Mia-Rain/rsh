@@ -1,0 +1,6 @@
+#!/bin/sh
+printf '%s' "${DEBUG+!! PREPARE PUSH$nl}" 
+# shellcheck disable=SC2119
+db
+# prepare the database for upcoming push
+confedit "./${config_hidden}rsh.conf" push_ready=1

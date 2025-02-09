@@ -1,0 +1,53 @@
+#!/bin/sh
+unset db_items repo_name
+# important to unset data otherwise local config
+# will be used
+# grab func # clone
+[ "$1" ] || {
+  help "clone"; bail "Missing argument, see \`rsh help clone\`" '$1 was not present' 1
+}
+case "$1" in
+  (*"://"*)
+    case "$1" in
+      ("https://"*) PROTO="https";;
+      ("http://"*) PROTO="http";;
+      ("sftp://"*) PROTO="sftp";;
+      ("ftp://"*) PROTO="ftp";;
+      (*"://"*) PROTO="${1%%://*}";;
+      (*) : ${PROTO:=https};;
+    esac
+  :;;
+    # DETECT PROTO
+  ("/"*) PROTO="path"
+  :;;
+  (*) : ${PROTO:=https}
+  :;;
+    # USE DEFAULT
+esac
+url="$1"; url="${url##*://}"
+[ "$(type curl)" ] && {
+  printf '%s' "${DEBUG+!! GRABBING $PROTO://$url$nl}"
+  confload "${PROTO}://${url}/" "${2}"
+
+  IFS=" "
+  for file in $db_items; do
+    if [ ! "$DRY" ]; then
+      curl -Ls --create-dirs "${PROTO}://${url}/${2:-$latest}/$file" -o "${repo_name}/${file}"
+      printf '%s' "${DEBUG+!! WROTE $file TO ./$repo_name/$file$nl}"
+    else
+       printf '%s' "${DEBUG+!! WOULD WRITE $file TO ./$repo_name/$file$nl}"
+    fi
+  done
+  shcat << EOF
+----------
+${DRY+Would have }cloned into ./$repo_name ${2+@ v${2#v}}
+----------
+EOF
+} || bail "CANNOT PROCEED WITHOUT CURL" "Please install CURL"
+# we aren't checking curl for compatibility here
+# in theory [ "$(curl --version | grep " $PROTO " -q)" ]
+# would work but it would likely be stupid hard to reimplement
+##
+# idea is to curl ${PROTO}://$1/[.]rsh.conf
+# and source it; then curl everything in $db_items
+# into ./${2:-$repo_name}

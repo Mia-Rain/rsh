@@ -1,0 +1,42 @@
+#!/bin/sh
+orgfunc=confload_l1
+if [ -e "$1" ]; then
+  infile="$(shcat < $1)"
+  if [ "$infile" ]; then
+    IFS="$nl"
+      for line in $infile; do
+        case "$line" in
+          ("$2"*) printf '%s\n' "${line##*=}" && exit 0;;
+        esac
+      done
+      unset IFS
+  else
+    bail "COULD NOT LOAD DATA FROM $1" "Error in confload_l1(), please confirm that $1 exists"
+  fi
+  # path
+else
+  [ "$(type curl)" ] && {
+    infile="$(curl -sL --fail "$1" || printf '')"
+    if [ "$infile" ]; then
+      IFS="$nl"
+      for line in $infile; do
+        case "$line" in
+          ("$2"*) printf '%s\n' "${line##*=}" && exit 0;;
+        esac
+      done
+      unset IFS
+    else
+      bail "COULD NOT LOAD DATA FROM $1" "Error in confload_l1(), please confirm that $1 exists"
+    fi
+  } || bail "CANNOT CONTINUE WITHOUT CURL" "Error in confload_l1(), curl is needed to continue, please install curl"
+  # url
+fi 
+# returns the value on line 1 in $1 after loading it from $1
+# $1 should either be a path or url
+# if path must have file://
+##
+# TODO:
+# the above should be removed, as confload_l1() is only designed to load the first ling
+# and confload() just loads the whole thing
+# really need to refractor all of this; soon :tm:
+##

@@ -1,0 +1,77 @@
+#!/bin/sh
+# pull func
+unset pull_path
+[ -d "$push_path"/repos/"$repo_name"/ ] && pull_path="$push_path"/repos/"$repo_name"/
+[ "$1" ] && remote_url="$1"
+[ "$remote_url" ] || {
+  printf '%s' "${DEBUG+!! remote_url is missing; repo is likely from before v0.1}$nl"
+}
+[ ! "$pull_path" ] && pull_path="$remote_url"
+[ -d "$pull_path" ] && pull_path="file://$pull_path"
+[ ! "$pull_path" -a "$1" ] && {
+  pull_path="${PROTO:-https}://${1##*://}"
+}
+read -rp "This will destroy any current changes... Are you sure? [y/n] > " uinput
+printf '%s' "${DEBUG+!! INPUT was '${uinput:-UNSET}'$nl}"
+case "$uinput" in
+  ("y"*|"Y"*) : ;;
+  (*)
+    bail "User did not accept above warning..." "The above warning only accepts \`y\`"
+    ;;
+esac
+[ "$pull_path" ] && {
+  printf '%s' "${DEBUG+!! PULL_PATH is ${pull_path:-UNSET}$nl}"
+  printf '%s' "${DEBUG+!! LATEST is ${latest:-UNSET}$nl}"
+  confload "$pull_path/" "${2:-latest}"
+  printf '%s' "${DEBUG+!! db_items is ${db_items+SET}$nl}"
+  # now basically wipe out any exiting files that are present in the db
+  # leave everything else alone
+  ## this is basically clone but in ./ and check if files exist first
+  ## don't worry about folders, only the files in those folders
+  ## notably no extra work for this is needed as the db system was designed with this is mind
+  ## folders are only added to the db if they contain files
+  case "$pull_path" in
+    (*"://"*)
+      case "$pull_path" in
+        ("https://"*) PROTO="https";;
+        ("http://"*) PROTO="http";;
+        ("sftp://"*) PROTO="sftp";;
+        ("ftp://"*) PROTO="ftp";;
+        (*"://"*) PROTO="${pull_path%%://*}";;
+        (*) : ${PROTO:=https};;
+      esac
+    :;;
+    # DETECT PROTO
+    ("/"*) PROTO="path"
+    :;;
+    (*) : ${PROTO:=https}
+    :;;
+    # USE DEFAULT
+  esac
+  pull_path="${pull_path##*://}"
+  IFS=" "
+  for file in $db_items; do
+    if [ ! "$DRY" ]; then
+      [ -e "$file" -a -w "$file" ] && {
+        printf '%s' "${DEBUG+!! WROTE null TO ./$file$nl}"
+        :> "$file"
+      }
+
+      curl -Ls --create-dirs "${PROTO}://${pull_path}/${2:-$latest}/$file" -o "./${file}"
+      printf '%s' "${DEBUG+!! WROTE $file TO ./$file$nl}"
+    else
+      [ -e "$file" -a -w "$file" ] && printf '%s' "${DEBUG+!! WOULD WRITE null TO ./$file$nl}"
+      printf '%s' "${DEBUG+!! WOULD WRITE $file TO ./$file$nl}"
+    fi
+  done
+      shcat << EOF
+----------
+${DRY+Would have }pulled ${2:-$latest} into ./
+----------
+EOF
+} || {
+  bail '$pull_path/$remote_url is not defined for this repo... Please Provide' "The project within $PWD does not have \$remote_url set"
+}
+# curl missing is handled in confload()
+##
+# $1 here is used for manual version setting

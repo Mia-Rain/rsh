@@ -1,0 +1,76 @@
+#!/bin/sh
+hook push pre
+IFS=" "
+set -- ${db_items}
+[ "$push_ready" ] && {
+  [ -e "$push_path/repos/$repo_name/$version/" -a ! "$DRY" ] && bail "$version IS ALREADY PRESENT AT $push_path/repos/$repo_name/" "Please remove $version if you wish to amend it..."
+  while [ "$1" ]; do
+    if [ ! "$DRY" ]; then
+      curl -Lsk --create-dirs file:///"$PWD"/"$1" -o "$push_path/repos/$repo_name/$version/$1"
+    else
+      printf '%s\n' "-- Would copy $1 to $push_path/repos/$repo_name/$version/$1"
+    fi
+    [ ! "$DRY" ] && printf '%s' "${DEBUG+!! WROTE $1 TO $push_path/repos/$repo_name/$version/$1$nl}"
+    if [ ! -e "$push_path/repos/$repo_name/$version/$1" -a ! "$DRY" ]; then
+      bail "$push_path/repos/$repo_name/$version/$1 IS MISSING..." "Please check the permissions on $push_path/repos/$repo_name/"
+    fi
+    shift 1
+  done
+} || {
+  bail "There is nothing to push..." '$push_ready is unset; please commit before push'
+  # TODO: add a -c flag to auto commit
+  # as commit messages dont exist in rsh
+  # TODO: add handling for curl missing
+}
+##
+# TODO:
+# in dry mode the above data was not written
+# thus checking the data for the latest version doesn't work
+##
+##
+unset vcode i local_latest
+for i in "$push_path/repos/$repo_name"/*; do
+  i=${i##*/}
+  [ "$i" != "latest" ] && {
+    vcode="$i"
+    i=$(vfunc "$i")
+    until [ "${i#0}" = "$i" ]; do
+      i="${i#?}"
+    done
+    local_latest="${local_latest#v}"
+    [ "${local_latest:-0}" -lt "${i#v}" ] && local_latest="$i"
+  }
+done
+printf '%s' "${DEBUG+!! LATEST VERSION IS $local_latest$nl}"
+[ -h "$push_path/repos/$repo_name/latest" -a ! "$remote_latest" ] && {
+  [ "$(type unlink)" ] && unlink "$push_path/repos/$repo_name/latest"
+}
+if [ ! "$remote_latest" ]; then
+  [ "$(type ln)" -a "$(type unlink)" ] && {
+    printf '%s\n' "-- Using ln"
+    printf '%s' "${DEBUG+!! LINKING LATEST AS $vcode$nl}"
+    cd "$push_path/repos/$repo_name/" && {
+      ln -sf "./$vcode" "./latest" || printf '%s\n' "!! WARNING: linking of latest failed, this is likely due to sshfs issues or missing ln"
+      :
+      # technically its perfectly fine if this ln fails
+      # it would lead to issues with automatic clone & pull but thats for another time
+      # TODO: ^
+    } ||  bail "CHECK PERMs ON $push_path/repos/$repo_name/" "Cannot enter $push_path/repos/$repo_name/; add +x perms"
+  }
+else
+  latest_config_path="${remote_latest##*,}"
+  confedit "$latest_config_path" "latest=$vcode"
+  # this needs proper testing
+fi
+# determine latest version and write to config
+
+
+printf '%s\n' "-- Pushed. Version $version is now present at $push_path/repos/$repo_name/$version"
+printf '%s\n' "-- Make sure permissions on $push_path/repos/$repo_name/$version are correct for your usage"
+printf '%s\n' "-- You likely will want 755 perms if pushed to active website"
+cd $PROJECT_PATH
+confedit "./${config_hidden}rsh.conf" push_ready=""
+
+
+hook push post
+# TODO: implement --dry handling

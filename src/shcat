@@ -1,0 +1,4 @@
+#!/bin/sh
+while IFS= read -r p || [ "$p" ]; do
+  printf '%s\n' "$p"
+done

@@ -1,0 +1,28 @@
+#!/bin/sh
+for i in ./*; do
+  # db should only be run from parent folder
+    [ -d "$i" ] && {
+      fl="${fl}${i#./}/"
+      cd "$i" || bail "FAILED TO MOVE TO ${PWD}/$i" "Please check the permissions on ${PWD}/$i"
+      # shellcheck disable=SC2119 
+      db_build
+      cd ../ || bail "FAILED TO MOVE TO ${PWD}/../" "Please check the permissions on ${PWD}/../"
+      fl="${fl%%/*}/"
+    } || {
+      case "$db_ignore" in
+        *" $fl${i#./} "*) :;;
+        *) 
+        [ -e "$PROJECT_PATH/$fl${i#./}" ] || unset fl
+        printf '%s' "$fl${i#./}${space}"
+        ;;
+      esac
+    }
+  # TODO(?): cycles could be saved by detecting if there are no files in $i
+  done
+IFS=" "
+for i in $db_extras; do
+  [ -e "$i" ] && {
+    printf '%s' "${i#./}${space}"
+  }
+done
+# this is used because of recursion

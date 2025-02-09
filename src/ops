@@ -1,0 +1,27 @@
+#!/bin/sh
+# handle ops
+known_ops="--verbose:--version:-v:--dry:--tls:--ssl:--ftp:--insecure:--sftp"
+while [ "$1" ]; do
+  case "$1" in
+    (-v|--version)
+    # output version
+    unset DEBUG
+    bail "rsh version $ver${nl}" "" "0";;
+    ("--verbose") 
+      DEBUG=1;;
+    ("--dry")
+      DRY=1;;
+    ("--tls"|"--ssl")
+      PROTO=https;;
+    ("--ftp")
+      PROTO=ftp;;
+    ("--insecure")
+      PROTO=http;;
+    ("--sftp")
+      PROTO=sftp;;
+    # PROTO will be used by clone()
+    # ${PROTO}://$url
+    # shorthand for protocol
+  esac
+  shift 1
+done

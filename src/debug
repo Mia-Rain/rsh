@@ -1,0 +1,7 @@
+#!/bin/sh
+printf '%s' "${DEBUG+!! DROPPING TO $1 IF PRESENT$nl}"
+type "$1" >/dev/null && {
+  op="$1"; shift 1 # shift out $1
+  ${op} "$@"
+} # || bail "$1 IS NOT A VALID COMMAND" "Please make sure $1 is actually defined"
+# debug() runs commands directly with arguments; useful for db() & cl()

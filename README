@@ -1,14 +1,25 @@
 ---
 rsh
--- versioning control for a new era 
+-- version manager designed around point releases
 ---
 
 ---
-depends
--- sh & curl
+build
+-- build standalone by running `dash ./standalone.sh conf=./bindgen.conf > ./rsh.sh && chmod +x ./rsh.sh
 ---
-
----
-state
--- Currently PRE-Alpha
+Usage
+-- ./rsh.sh [ops] <command> [args]
+---- commands:
+    >> status                Show the status of current repo.
+    >> [i]nit                Clone a repository into a new directory.
+    >> [g]rab/clone          Clone a repository into a new directory.
+    >> [revision]/var/commit Commit the current changes to a new revision.
+    >> [p]ull/yank           Pull remote changes to the current project.
+    >> p[u]sh/send           Push currently committed changes to remote location.
+    >> [h]elp [subcommand]   Provide usage; optionally for a subcommand.
+    >> config                Directly edit config parameters.
+---- ops:
+    >> -[-v]ersion           Show versions of rsh(!) and current repo
+    >> --verbose             Provides DEBUG info.
+    >> --dry                 Simulate changes.
 ---

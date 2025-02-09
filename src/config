@@ -1,0 +1,11 @@
+#!/bin/sh
+[ "${2:-help}" != "help" ] &&  {
+  confedit "./${config_hidden}rsh.conf" "$1=$2"
+  printf '%s\n' "-- ./${config_hidden}rsh.conf was updated with $1=$2"
+} || help "config" "$1"
+# config() takes 2 arguments
+# $1 as value to take and $2 as new value or help
+# if $2 is help, display info about $1 if present
+## this would require documentation building
+## an advanced system to package documentation
+## inside the single static script would be useful here
