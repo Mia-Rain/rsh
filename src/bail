@@ -3,6 +3,6 @@ if [ ! "$DEBUG" ]; then
   printf '%s\n' "${1}"
   exit "${3:-1}"
 else
-  printf '%s\n' "${1}${nl}DEBUG:${nl}$2 | @ $PWD | Failed in $orgfunc"
+  printf '%s\n' "${1}${nl}DEBUG:${nl}$2\n| Current Directory: $PWD\n| Failed in ${orgfunc}\n"
   exit "${3:-1}"
 fi

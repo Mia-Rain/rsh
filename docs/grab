@@ -1,3 +1,45 @@
 ---
 grab()
 ---
+Usage
+-- `grab "$@"`
+---- takes all arguments originally given to main()
+Reason
+-- cloning system... 
+---- makes use of curl and internally defined repo structure
+-- $1 as url
+-- $2 as version or use $latest via $remote_latest from main config
+---
+Routine - as of v0.0.0.91
+-- L2: unload local config data as we will attempt to load the remote config soon
+-- L6->8: provide help() data for live shells
+-- L9->26: setup $PROTO by case matching $1
+---- no check for support is made, simply used to allow for a default with https
+---- this is to prevent issues when CURL is not support by the OS
+  >>>> TODO: do better on this part
+-- L27: setup $url from $1
+-- L28->46: 
+  -- check for curl using type(1)
+  -- pass data to confload
+  ---- this reloads the config using the expected repo structure
+  ---- and having curl pull it from remote without downloading
+  -- check for --dry usage
+  -- loop over $db_items now that config has been reloaded
+  ---- pass data into curl and download locally into ./$repo_name/$file
+  ---- using internal repo structure
+  -- simulate above changes when using --dry
+  -- provide satus repo
+---
+Legend
+-- $DRY
+---- toggelled on by --dry within ops() or can be manually exported
+-- $2/$latest/$remote_latest
+---- data for which version to retrive is either handled with $remote_latest
+---- or manually provided with $2
+  >>>> automatic $latest/$remote_latest support is for better ease of use
+  >>>> within live shells
+# TODO
+# implement docs for repo structure
+# TODO
+# rework to not enforce the need for curl
+## ie for systems like 9front

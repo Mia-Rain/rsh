@@ -1,3 +1,8 @@
+v0.0.0.913
+-- some work on the documentation at last
+---- this includes bail(),cl().grab(),clearvars(),config()
+-- lots of TODOs were added within these docs for future cleaning
+---
 v0.0.0.9
 -- after stepping away from rsh to work on other projects we finally return
 ---- recently we've made dev tools to simply librarie usage and refractor

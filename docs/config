@@ -1,5 +1,16 @@
 --
 config()
 ---
+Usage
+-- `config "$@"`
+---- takes all arguments originally given to main()
+---
+Reason
+-- provide clean access to configedit() for cli usage
+---- only acts as a wrapper around configedit()
 
---
+DO NOT USE FOR PLUGINS
+configedit() is for internal use
+config() is intended for live shells
+
+# having this in place is 100% extra tbh

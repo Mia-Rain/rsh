@@ -19,6 +19,5 @@ Routine - as of v0.0.0.8
   >> written as `[ "${p%=*}" = "${1%=*}" ] && p="$1"`
   >>>> expansion should remove everything after first =
 ---- otherwise do nothing
----- output current line 
-  >> `e "$p"`
+---- then output current line 
 ---

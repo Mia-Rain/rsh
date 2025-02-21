@@ -15,14 +15,21 @@ Reason
 -- with custom exit code
 ---- via $3
 ---
-Routine - as of v0.0.0.8
--- unset ERR making sure following code operates as expected
----- check if $DEBUG is set
--- if not simply output $1 and exit with code ${3:-1}
----- if set; output $1 followed by 
-  >>>> DEBUG:"${nl}"$2 | @ $PWD | Failed in $orgfunc 
----- then exit with code ${3:-1}
+Routine - as of v0.0.0.91
+-- check if $DEBUG is set, this is automatically handled by ops() typically
+  >> however users can manually export $DEBUG as well
+---- if $DEBUG is unset then give crash reason and exit with code ${3:-1}
+----- otherwise provide advanced debug info using $2, $orgfunc and $PWD
+---
+Legend
 -- $orgfunc
 ---- $orgfunc is used for additional debug info
 ---- if set before bail() is called & DEBUG is set, output will contain info about last running function
+---- calls serveral functions deep should have advanced info about pathways
+  >> devs should append onto $orgfunc following existing formating clues
+  >> when possible; it may be desirable to overwrite at times
+-- $DEBUG
+---- toggelled on by --verbose within ops() or can be manually exported
+-- $PWD
+---- provides the current path of rsh; always set by env
 ---
