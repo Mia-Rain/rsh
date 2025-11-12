@@ -25,7 +25,7 @@ case "$1" in
     # USE DEFAULT
 esac
 url="$1"; url="${url##*://}"
-[ "$(type curl)" ] && {
+[ "$(command curl 2>/dev/null)" ] && {
   printf '%s' "${DEBUG+!! GRABBING $PROTO://$url$nl}"
   confload "${PROTO}://${url}/" "${2}"
 
