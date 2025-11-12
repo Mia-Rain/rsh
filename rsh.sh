@@ -175,7 +175,7 @@ if [ -e "$1" ]; then
   fi
   # path
 else
-  [ "$(type curl)" ] && {
+  [ "$(command curl)" ] && {
     infile="$(curl -sL --fail "$1" || printf '')"
     if [ "$infile" ]; then
       IFS="$nl"
@@ -267,7 +267,7 @@ done
 }
 debug() {
 printf '%s' "${DEBUG+!! DROPPING TO $1 IF PRESENT$nl}"
-type "$1" >/dev/null && {
+command "$1" >/dev/null && {
   op="$1"; shift 1 # shift out $1
   ${op} "$@"
 } # || bail "$1 IS NOT A VALID COMMAND" "Please make sure $1 is actually defined"
@@ -300,7 +300,7 @@ case "$1" in
     # USE DEFAULT
 esac
 url="$1"; url="${url##*://}"
-[ "$(type curl)" ] && {
+[ "$(command curl)" ] && {
   printf '%s' "${DEBUG+!! GRABBING $PROTO://$url$nl}"
   confload "${PROTO}://${url}/" "${2}"
 
@@ -711,10 +711,10 @@ for i in "$push_path/repos/$repo_name"/*; do
 done
 printf '%s' "${DEBUG+!! LATEST VERSION IS $local_latest$nl}"
 [ -h "$push_path/repos/$repo_name/latest" -a ! "$remote_latest" ] && {
-  [ "$(type unlink)" ] && unlink "$push_path/repos/$repo_name/latest"
+  [ "$(command unlink)" ] && unlink "$push_path/repos/$repo_name/latest"
 }
 if [ ! "$remote_latest" ]; then
-  [ "$(type ln)" -a "$(type unlink)" ] && {
+  [ "$(command ln)" -a "$(command unlink)" ] && {
     printf '%s\n' "-- Using ln"
     printf '%s' "${DEBUG+!! LINKING LATEST AS $vcode$nl}"
     cd "$push_path/repos/$repo_name/" && {
