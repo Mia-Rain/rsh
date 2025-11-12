@@ -43,10 +43,10 @@ for i in "$push_path/repos/$repo_name"/*; do
 done
 printf '%s' "${DEBUG+!! LATEST VERSION IS $local_latest$nl}"
 [ -h "$push_path/repos/$repo_name/latest" -a ! "$remote_latest" ] && {
-  [ "$(type unlink)" ] && unlink "$push_path/repos/$repo_name/latest"
+  [ "$(command unlink)" ] && unlink "$push_path/repos/$repo_name/latest"
 }
 if [ ! "$remote_latest" ]; then
-  [ "$(type ln)" -a "$(type unlink)" ] && {
+  if [ "$(command ln)" ] && [ "$(command unlink)" ]; then
     printf '%s\n' "-- Using ln"
     printf '%s' "${DEBUG+!! LINKING LATEST AS $vcode$nl}"
     cd "$push_path/repos/$repo_name/" && {
@@ -56,7 +56,7 @@ if [ ! "$remote_latest" ]; then
       # it would lead to issues with automatic clone & pull but thats for another time
       # TODO: ^
     } ||  bail "CHECK PERMs ON $push_path/repos/$repo_name/" "Cannot enter $push_path/repos/$repo_name/; add +x perms"
-  }
+  fi
 else
   latest_config_path="${remote_latest##*,}"
   confedit "$latest_config_path" "latest=$vcode"
