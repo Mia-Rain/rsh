@@ -15,7 +15,7 @@ if [ -e "$1" ]; then
   fi
   # path
 else
-  [ "$(type curl)" ] && {
+  [ "$(command curl)" ] && {
     infile="$(curl -sL --fail "$1" || printf '')"
     if [ "$infile" ]; then
       IFS="$nl"
